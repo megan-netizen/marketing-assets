@@ -19,13 +19,20 @@ export default async function handler(req, res) {
       },
     });
 
-    const data = await upstream.json();
-    
-    // Forward the status code from Tapcart
-    res.status(upstream.status).json(data);
+    const text = await upstream.text();
+
+    // Guard against HTML error pages (Tapcart returns HTML for unknown app IDs)
+    if (!upstream.ok || text.trim().startsWith('<')) {
+      return res.status(upstream.status).json({
+        error: `App not found or API unavailable (HTTP ${upstream.status})`,
+      });
+    }
+
+    const data = JSON.parse(text);
+    return res.status(200).json(data);
 
   } catch (err) {
     console.error('[tapcart-proxy] error:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
