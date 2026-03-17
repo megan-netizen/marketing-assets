@@ -1,0 +1,9 @@
+{
+  "name": "tapcart-asset-builder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tapcart IM Marketing Asset Builder",
+  "engines": {
+    "node": ">=18"
+  }
+}
