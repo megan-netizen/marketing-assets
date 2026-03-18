@@ -2111,32 +2111,49 @@ async function fetchAndCapture() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Extract nav/screen routes
-    const screens  = data?.config?.screens || data?.screens || {};
-    const shopify  = data?.config?.shopify  || data?.shopify  || {};
-    const nav      = data?.config?.navigation?.tabs || [];
+    // Extract nav/screen routes — use real tapcart.studio URLs from API response
+    const routes  = data?.config?.routes || {};
+    const screens = data?.screens || data?.config?.screens || {};
+    const shopify = data?.config?.settings?.environment?.platform?.shopify || data?.config?.shopify || {};
+    const nav     = data?.config?.navigation?.tabs || [];
 
-    const getUrl = (screenKey) => {
-      const s = screens[screenKey];
-      if (!s) return null;
-      return `https://app.tapcart.com/app/${appId}/${s.type || screenKey}`;
+    // Get the actual URL stored on a screen object
+    const getScreenUrl = (screenObj) => {
+      if (!screenObj) return null;
+      return screenObj.url || screenObj.webUrl || screenObj.uri || screenObj.href || screenObj.source || null;
     };
 
-    const findRoute = (types) => {
-      for (const t of types) {
-        if (screens[t]) return `https://app.tapcart.com/app/${appId}/${screens[t].type || t}`;
-        const found = Object.values(screens).find(s => s.type === t);
-        if (found) return `https://app.tapcart.com/app/${appId}/${found.type || t}`;
-      }
-      return null;
+    // Resolve a route key → screen ID → real URL
+    const resolveRoute = (routeKey) => {
+      const screenKey = routes[routeKey];
+      if (screenKey && screens[screenKey]) return getScreenUrl(screens[screenKey]);
+      // Fallback: fuzzy match on screen keys
+      const match = Object.entries(screens).find(([k, v]) =>
+        k.toLowerCase().includes(routeKey.replace(/-/g, '')) && getScreenUrl(v)
+      );
+      return match ? getScreenUrl(match[1]) : null;
     };
+
+    // Collections list: try several common route key variants
+    let collListUrl = null;
+    for (const rk of ['collections-list', 'collection-list', 'collections', 'collectionList']) {
+      const rv = routes[rk];
+      if (rv && screens[rv]) { const u = getScreenUrl(screens[rv]); if (u) { collListUrl = u; break; } }
+    }
+    if (!collListUrl) {
+      const collMatch = Object.entries(screens).find(([k]) => /collection/i.test(k) && !k.includes('/'));
+      if (collMatch) collListUrl = getScreenUrl(collMatch[1]);
+    }
+
+    // Account route key
+    const accountRouteKey = routes.account || routes.profile || routes.myAccount || routes.user || routes.settings || null;
 
     const links = {
-      home:        `https://app.tapcart.com/app/${appId}/home`,
-      collections: findRoute(['collections', 'collection_list']) || `https://app.tapcart.com/app/${appId}/collections`,
-      plp:         findRoute(['collection', 'plp'])              || `https://app.tapcart.com/app/${appId}/collection`,
-      pdp:         findRoute(['product', 'pdp'])                 || `https://app.tapcart.com/app/${appId}/product`,
-      account:     findRoute(['account', 'profile'])             || `https://app.tapcart.com/app/${appId}/account`,
+      home:        resolveRoute('home'),
+      collections: collListUrl,
+      plp:         resolveRoute('plp'),
+      pdp:         resolveRoute('pdp'),
+      account:     accountRouteKey ? getScreenUrl(screens[accountRouteKey]) : null,
     };
     appLinks = links;
 
