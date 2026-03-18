@@ -2107,7 +2107,7 @@ async function fetchAndCapture() {
   showCapProgress('Loading app…');
 
   try {
-    const res  = await fetch(`/api/tapcart-proxy?appId=${encodeURIComponent(appId)}`);
+    const res  = await fetch(`https://app.tapcart.com/v1/apps/${appId}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
