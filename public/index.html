@@ -332,6 +332,18 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
 #bg-color2-row { display: none; }
 #bg-grad-dir-row { display: none; }
 
+/* Icon action rows (Copy/Overlays and overlay type icons) */
+.rr-icon-row { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+.rr-icon-btn {
+  flex: 1; min-width: 44px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 7px 4px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer; transition: all 0.15s; color: var(--muted);
+  font-family: 'Barlow', sans-serif; font-size: 8px; font-weight: 700;
+  letter-spacing: 0.4px; text-transform: uppercase;
+}
+.rr-icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.rr-icon-btn.active { border-color: var(--accent); background: rgba(232,255,0,0.08); color: var(--accent); }
+
 /* Noise canvas */
 .noise-canvas { position: absolute; inset: 0; pointer-events: none; z-index: 2; opacity: 0; transition: opacity 0.3s; }
 .noise-canvas.active { opacity: 1; }
@@ -839,7 +851,7 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
     </div>
     <div class="rr-body">
 
-      <!-- ═══ DESIGN TAB: Text + Background + Badges ═══ -->
+      <!-- ═══ DESIGN TAB ═══ -->
       <div class="rr-panel active" id="rr-design">
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -847,295 +859,301 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
           <span id="panel-asset-name" style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:0.5px">EMAIL</span>
         </div>
 
-        <!-- TEXT ─────────────────────────────────────── -->
-        <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('text')">
-            <div><div class="rr-group-title">Text</div><div class="rr-group-sub">Content · Align</div></div>
-            <svg class="rr-group-chev open" id="grp-chev-text" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        <!-- BACKGROUND ── always visible ── -->
+        <div style="margin-bottom:10px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+          <span style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px">Background</span>
+          <input type="color" id="ctrl-bg1" value="#111111" oninput="setVal('bg1',this.value);applyAsset()" style="width:100%;height:34px;margin-bottom:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px;display:block">
+          <div style="display:flex;gap:12px;margin-bottom:6px">
+            <div class="toggle-row" style="margin:0;flex:1"><span class="toggle-label" style="font-size:10px">Grain</span><label class="toggle"><input type="checkbox" id="ctrl-noise" onchange="setVal('noise',this.checked);applyAsset()"><span class="tog-sl"></span></label></div>
+            <div class="toggle-row" style="margin:0;flex:1"><span class="toggle-label" style="font-size:10px">Gradient</span><label class="toggle"><input type="checkbox" id="ctrl-gradient" onchange="setVal('useGrad',this.checked);applyAsset();toggleBgGradient(this.checked)"><span class="tog-sl"></span></label></div>
           </div>
-          <div class="rr-group-body" id="grp-body-text">
-            <div class="ct-card">
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Headline</label>
-              <input type="text" class="ctrl-text" id="ctrl-header" value="Download Our App" oninput="setVal('header',this.value);applyAsset()" style="margin-bottom:8px">
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Subheadline</label>
-              <textarea id="ctrl-subheader" oninput="setVal('subheader',this.value);applyAsset()">Be the first to shop our latest deals</textarea>
-              <div style="margin-top:8px">
-                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Align</label>
-                <div class="btn-group" id="align-group">
-                  <button class="btn-opt on" data-key="textAlign" data-val="left"   onclick="btnSet('align-group','textAlign',this)">← Left</button>
-                  <button class="btn-opt"    data-key="textAlign" data-val="center" onclick="btnSet('align-group','textAlign',this)">Center</button>
-                  <button class="btn-opt"    data-key="textAlign" data-val="right"  onclick="btnSet('align-group','textAlign',this)">Right →</button>
-                </div>
+          <div id="bg-color2-row" style="display:none;margin-bottom:6px">
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="color" id="ctrl-bg2" value="#cc0000" oninput="setVal('bg2',this.value);applyAsset()" style="width:40px;height:28px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:1px;flex-shrink:0">
+              <div class="btn-group" id="grad-group" style="margin:0;flex:1">
+                <button class="btn-opt on" data-key="gradDir" data-val="to bottom right" onclick="btnSet('grad-group','gradDir',this)" style="padding:3px 5px;font-size:9px">&#x2198;</button>
+                <button class="btn-opt"    data-key="gradDir" data-val="to right"         onclick="btnSet('grad-group','gradDir',this)" style="padding:3px 5px;font-size:9px">&#x2192;</button>
+                <button class="btn-opt"    data-key="gradDir" data-val="to bottom"        onclick="btnSet('grad-group','gradDir',this)" style="padding:3px 5px;font-size:9px">&#x2193;</button>
               </div>
             </div>
-            <button class="btn-opt" style="width:100%;margin-bottom:6px;font-size:10px;color:var(--muted)" onclick="resetPos()">↺ Reset text position</button>
           </div>
+          <div class="adv-toggle" onclick="toggleAdv('bgimgadv')" style="font-size:9px">Image &amp; Overlay <svg id="adv-chev-bgimgadv" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div id="adv-bgimgadv" style="display:none;margin-top:8px">
+            <div id="bg-img-preview-wrap">
+              <div class="upload-zone" style="margin-bottom:5px" onclick="document.getElementById('bg-img-upload').click()">
+                <input type="file" id="bg-img-upload" accept="image/*" onchange="handleBgImgUpload(event)">
+                <div class="uz-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 4px;color:var(--muted)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="uz-text"><strong>Upload Image</strong>Behind phone + text</div>
+              </div>
+            </div>
+            <div id="bg-img-controls" style="display:none">
+              <div class="bg-img-preview" id="bg-img-preview-box"><img id="bg-img-thumb" src="" alt="bg"><button class="bg-img-clear" onclick="clearBgImg()">&#x2715;</button></div>
+              <div class="sl-row"><label>Opacity</label><input type="range" id="sl-bgop" min="0" max="100" value="100" oninput="setVal('bgOp',+this.value);applyAsset();document.getElementById('sv-bgop').textContent=this.value+'%'"><span class="sl-val" id="sv-bgop">100%</span></div>
+              <div class="sl-row"><label>Blur</label><input type="range" id="sl-bgblur" min="0" max="30" value="0" oninput="setVal('bgBlur',+this.value);applyAsset();document.getElementById('sv-bgblur').textContent=this.value+'px'"><span class="sl-val" id="sv-bgblur">0px</span></div>
+              <div class="row2"><div><label>Overlay Color</label><input type="color" id="ctrl-bgovcolor" value="#000000" oninput="setVal('bgOvColor',this.value);applyAsset()"></div><div><label>Overlay %</label><div style="display:flex;align-items:center;gap:4px;margin-top:4px"><input type="range" id="sl-bgovop" min="0" max="90" value="0" style="flex:1;accent-color:var(--accent)" oninput="setVal('bgOvOp',+this.value);applyAsset();document.getElementById('sv-bgovop').textContent=this.value+'%'"><span class="sl-val" id="sv-bgovop">0%</span></div></div></div>
+            </div>
+          </div>
+          <button class="apply-all-btn" onclick="applyBgToAll()" style="margin-top:8px">Apply to all assets</button>
         </div>
 
-        <!-- HEADLINE STYLE ──────────────────────────── -->
-        <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('hstyle')">
-            <div><div class="rr-group-title">Headline Style</div><div class="rr-group-sub">Size · Color · Font</div></div>
-            <svg class="rr-group-chev" id="grp-chev-hstyle" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-          <div class="rr-group-body" id="grp-body-hstyle" style="display:none">
-            <div class="ct-card">
-              <div class="sl-row" style="margin-bottom:8px">
-                <label style="font-size:10px;color:var(--muted);min-width:40px">Size</label>
-                <input type="range" id="sl-hsize" min="18" max="120" value="52" step="1" oninput="setVal('hSize',+this.value);applyAsset();document.getElementById('sv-hsize').textContent=this.value+'px'">
-                <span class="sl-val" id="sv-hsize">52px</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                <label style="font-size:10px;color:var(--muted);flex:1">Color</label>
-                <input type="color" id="ctrl-hcolor" value="#ffffff" oninput="setVal('hColor',this.value);applyAsset()" style="width:40px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:1px">
-              </div>
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Case</label>
-              <div class="btn-group" id="hcase-group" style="margin-bottom:8px">
-                <button class="btn-opt on" data-val="uppercase"  onclick="btnSetCase('h',this)" style="font-size:9px">AA</button>
-                <button class="btn-opt"    data-val="lowercase"  onclick="btnSetCase('h',this)" style="font-size:9px">aa</button>
-                <button class="btn-opt"    data-val="capitalize" onclick="btnSetCase('h',this)" style="font-size:9px">Aa</button>
-                <button class="btn-opt"    data-val="none"       onclick="btnSetCase('h',this)" style="font-size:9px">—</button>
-              </div>
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Font</label>
-              <div class="font-picker" style="margin-bottom:4px">
-                <select id="fp-h-input" onchange="applyGoogleFont('h',this.value)">
-                  <option value="">Default (Bebas Neue)</option>
-                  <optgroup label="Sans Serif"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Montserrat</option><option>Poppins</option><option>Lato</option><option>Nunito</option><option>Raleway</option><option>Work Sans</option><option>DM Sans</option><option>Plus Jakarta Sans</option><option>Outfit</option><option>Space Grotesk</option><option>Urbanist</option><option>Manrope</option></optgroup>
-                  <optgroup label="Display / Bold"><option>Bebas Neue</option><option>Barlow Condensed</option><option>Anton</option><option>Oswald</option><option>Black Han Sans</option><option>Fjalla One</option><option>Russo One</option><option>Righteous</option><option>Exo 2</option><option>Chakra Petch</option></optgroup>
-                  <optgroup label="Serif"><option>Playfair Display</option><option>Merriweather</option><option>Lora</option><option>Cormorant Garamond</option><option>DM Serif Display</option><option>Libre Baskerville</option></optgroup>
-                  <optgroup label="Mono"><option>JetBrains Mono</option><option>Space Mono</option><option>IBM Plex Mono</option><option>Fira Code</option></optgroup>
-                </select>
-                <button class="font-upload-btn" onclick="resetFont('h')" title="Reset">↺</button>
-              </div>
-              <div style="display:flex;gap:4px;margin-bottom:4px">
-                <input type="file" id="fp-h-file" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="applyCustomFont('h',this)">
-                <button class="font-upload-btn" style="flex:1;text-align:left" onclick="document.getElementById('fp-h-file').click()">↑ Upload custom font</button>
-              </div>
-              <div id="fp-h-name" style="font-size:9px;color:var(--accent);margin-bottom:4px;display:none"></div>
-              <div class="adv-toggle" onclick="toggleAdv('hadv')">Advanced <svg id="adv-chev-hadv" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle"><path d="M6 9l6 6 6-6"/></svg></div>
-              <div id="adv-hadv" style="display:none;margin-top:8px">
-                <div class="sl-row" style="margin-bottom:6px"><label style="font-size:10px;color:var(--muted);min-width:52px">Spacing</label><input type="range" id="sl-hkern" min="-5" max="30" value="0" step="0.5" oninput="setVal('hKern',+this.value);applyAsset();document.getElementById('sv-hkern').textContent=this.value+'px'"><span class="sl-val" id="sv-hkern">0px</span></div>
-                <div class="sl-row" style="margin-bottom:8px"><label style="font-size:10px;color:var(--muted);min-width:52px">Gap</label><input type="range" id="sl-hgap" min="0" max="60" value="8" step="1" oninput="setVal('hGap',+this.value);applyAsset();document.getElementById('sv-hgap').textContent=this.value+'px'"><span class="sl-val" id="sv-hgap">8px</span></div>
-                <div style="padding-top:6px;border-top:1px solid var(--border)">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                    <label style="font-size:10px;color:var(--muted)">Gradient</label>
-                    <label class="toggle" style="transform:scale(0.85);transform-origin:right center"><input type="checkbox" id="ctrl-hgrad" onchange="setVal('hGrad',this.checked);applyAsset();document.getElementById('hgrad-controls').style.display=this.checked?'block':'none'"><span class="tog-sl"></span></label>
+        <!-- ICON ROW: Copy · Overlays -->
+        <div class="rr-icon-row">
+          <button class="rr-icon-btn active" id="icon-btn-copy" onclick="toggleIconPanel('copy')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Copy
+          </button>
+          <button class="rr-icon-btn" id="icon-btn-overlays" onclick="toggleIconPanel('overlays')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 2H8a2 2 0 0 0-2 2v3h12V4a2 2 0 0 0-2-2z"/></svg>
+            Overlays
+          </button>
+        </div>
+
+        <!-- ── COPY PANEL ── -->
+        <div id="icon-panel-copy">
+
+          <div class="rr-group">
+            <div class="rr-group-hdr" onclick="toggleRRGroup('text')">
+              <div><div class="rr-group-title">Copy</div><div class="rr-group-sub">Content &middot; Align</div></div>
+              <svg class="rr-group-chev open" id="grp-chev-text" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="rr-group-body" id="grp-body-text">
+              <div class="ct-card">
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Headline</label>
+                <input type="text" class="ctrl-text" id="ctrl-header" value="Download Our App" oninput="setVal('header',this.value);applyAsset()" style="margin-bottom:8px">
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Subheadline</label>
+                <textarea id="ctrl-subheader" oninput="setVal('subheader',this.value);applyAsset()">Be the first to shop our latest deals</textarea>
+                <div style="margin-top:8px">
+                  <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Align</label>
+                  <div class="btn-group" id="align-group">
+                    <button class="btn-opt on" data-key="textAlign" data-val="left"   onclick="btnSet('align-group','textAlign',this)">&#x2190; Left</button>
+                    <button class="btn-opt"    data-key="textAlign" data-val="center" onclick="btnSet('align-group','textAlign',this)">Center</button>
+                    <button class="btn-opt"    data-key="textAlign" data-val="right"  onclick="btnSet('align-group','textAlign',this)">Right &#x2192;</button>
                   </div>
-                  <div id="hgrad-controls" style="display:none">
-                    <div class="row2" style="margin-bottom:4px">
-                      <div><label style="font-size:9px">C1</label><input type="color" id="ctrl-hgc1" value="#ffffff" oninput="setVal('hGradC1',this.value);applyAsset()"></div>
-                      <div><label style="font-size:9px">C2</label><input type="color" id="ctrl-hgc2" value="#e8ff00" oninput="setVal('hGradC2',this.value);applyAsset()"></div>
+                </div>
+              </div>
+              <button class="btn-opt" style="width:100%;margin-bottom:6px;font-size:10px;color:var(--muted)" onclick="resetPos()">&#x21BA; Reset text position</button>
+            </div>
+          </div>
+
+          <div class="rr-group">
+            <div class="rr-group-hdr" onclick="toggleRRGroup('hstyle')">
+              <div><div class="rr-group-title">Headline Style</div><div class="rr-group-sub">Size &middot; Color &middot; Font</div></div>
+              <svg class="rr-group-chev" id="grp-chev-hstyle" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="rr-group-body" id="grp-body-hstyle" style="display:none">
+              <div class="ct-card">
+                <div class="sl-row" style="margin-bottom:8px"><label style="font-size:10px;color:var(--muted);min-width:40px">Size</label><input type="range" id="sl-hsize" min="18" max="120" value="52" step="1" oninput="setVal('hSize',+this.value);applyAsset();document.getElementById('sv-hsize').textContent=this.value+'px'"><span class="sl-val" id="sv-hsize">52px</span></div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><label style="font-size:10px;color:var(--muted);flex:1">Color</label><input type="color" id="ctrl-hcolor" value="#ffffff" oninput="setVal('hColor',this.value);applyAsset()" style="width:40px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:1px"></div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Case</label>
+                <div class="btn-group" id="hcase-group" style="margin-bottom:8px">
+                  <button class="btn-opt on" data-val="uppercase"  onclick="btnSetCase('h',this)" style="font-size:9px">AA</button>
+                  <button class="btn-opt"    data-val="lowercase"  onclick="btnSetCase('h',this)" style="font-size:9px">aa</button>
+                  <button class="btn-opt"    data-val="capitalize" onclick="btnSetCase('h',this)" style="font-size:9px">Aa</button>
+                  <button class="btn-opt"    data-val="none"       onclick="btnSetCase('h',this)" style="font-size:9px">&#x2014;</button>
+                </div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Font</label>
+                <div class="font-picker" style="margin-bottom:4px">
+                  <select id="fp-h-input" onchange="applyGoogleFont('h',this.value)">
+                    <option value="">Default (Bebas Neue)</option>
+                    <optgroup label="Sans Serif"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Montserrat</option><option>Poppins</option><option>Lato</option><option>Nunito</option><option>Raleway</option><option>Work Sans</option><option>DM Sans</option><option>Plus Jakarta Sans</option><option>Outfit</option><option>Space Grotesk</option><option>Urbanist</option><option>Manrope</option></optgroup>
+                    <optgroup label="Display / Bold"><option>Bebas Neue</option><option>Barlow Condensed</option><option>Anton</option><option>Oswald</option><option>Black Han Sans</option><option>Fjalla One</option><option>Russo One</option><option>Righteous</option><option>Exo 2</option><option>Chakra Petch</option></optgroup>
+                    <optgroup label="Serif"><option>Playfair Display</option><option>Merriweather</option><option>Lora</option><option>Cormorant Garamond</option><option>DM Serif Display</option><option>Libre Baskerville</option></optgroup>
+                    <optgroup label="Mono"><option>JetBrains Mono</option><option>Space Mono</option><option>IBM Plex Mono</option><option>Fira Code</option></optgroup>
+                  </select>
+                  <button class="font-upload-btn" onclick="resetFont('h')" title="Reset">&#x21BA;</button>
+                </div>
+                <div style="display:flex;gap:4px;margin-bottom:4px"><input type="file" id="fp-h-file" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="applyCustomFont('h',this)"><button class="font-upload-btn" style="flex:1;text-align:left" onclick="document.getElementById('fp-h-file').click()">&#x2191; Upload custom font</button></div>
+                <div id="fp-h-name" style="font-size:9px;color:var(--accent);margin-bottom:4px;display:none"></div>
+                <div class="adv-toggle" onclick="toggleAdv('hadv')">Advanced <svg id="adv-chev-hadv" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle"><path d="M6 9l6 6 6-6"/></svg></div>
+                <div id="adv-hadv" style="display:none;margin-top:8px">
+                  <div class="sl-row" style="margin-bottom:6px"><label style="font-size:10px;color:var(--muted);min-width:52px">Spacing</label><input type="range" id="sl-hkern" min="-5" max="30" value="0" step="0.5" oninput="setVal('hKern',+this.value);applyAsset();document.getElementById('sv-hkern').textContent=this.value+'px'"><span class="sl-val" id="sv-hkern">0px</span></div>
+                  <div class="sl-row" style="margin-bottom:8px"><label style="font-size:10px;color:var(--muted);min-width:52px">Gap</label><input type="range" id="sl-hgap" min="0" max="60" value="8" step="1" oninput="setVal('hGap',+this.value);applyAsset();document.getElementById('sv-hgap').textContent=this.value+'px'"><span class="sl-val" id="sv-hgap">8px</span></div>
+                  <div style="padding-top:6px;border-top:1px solid var(--border)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><label style="font-size:10px;color:var(--muted)">Gradient</label><label class="toggle" style="transform:scale(0.85);transform-origin:right center"><input type="checkbox" id="ctrl-hgrad" onchange="setVal('hGrad',this.checked);applyAsset();document.getElementById('hgrad-controls').style.display=this.checked?'block':'none'"><span class="tog-sl"></span></label></div>
+                    <div id="hgrad-controls" style="display:none">
+                      <div class="row2" style="margin-bottom:4px"><div><label style="font-size:9px">C1</label><input type="color" id="ctrl-hgc1" value="#ffffff" oninput="setVal('hGradC1',this.value);applyAsset()"></div><div><label style="font-size:9px">C2</label><input type="color" id="ctrl-hgc2" value="#e8ff00" oninput="setVal('hGradC2',this.value);applyAsset()"></div></div>
+                      <div class="btn-group" id="hgrad-dir-group"><button class="btn-opt" data-val="180" onclick="btnSetHGrad(this)">&#x2193;</button><button class="btn-opt on" data-val="90" onclick="btnSetHGrad(this)">&#x2192;</button><button class="btn-opt" data-val="135" onclick="btnSetHGrad(this)">&#x2198;</button><button class="btn-opt" data-val="45" onclick="btnSetHGrad(this)">&#x2197;</button></div>
                     </div>
-                    <div class="btn-group" id="hgrad-dir-group"><button class="btn-opt" data-val="180" onclick="btnSetHGrad(this)">↓</button><button class="btn-opt on" data-val="90" onclick="btnSetHGrad(this)">→</button><button class="btn-opt" data-val="135" onclick="btnSetHGrad(this)">↘</button><button class="btn-opt" data-val="45" onclick="btnSetHGrad(this)">↗</button></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- SUBHEADLINE STYLE ───────────────────────── -->
-        <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('sstyle')">
-            <div><div class="rr-group-title">Subheadline Style</div><div class="rr-group-sub">Size · Color · Font</div></div>
-            <svg class="rr-group-chev" id="grp-chev-sstyle" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          <div class="rr-group">
+            <div class="rr-group-hdr" onclick="toggleRRGroup('sstyle')">
+              <div><div class="rr-group-title">Subheadline Style</div><div class="rr-group-sub">Size &middot; Color &middot; Font</div></div>
+              <svg class="rr-group-chev" id="grp-chev-sstyle" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="rr-group-body" id="grp-body-sstyle" style="display:none">
+              <div class="ct-card">
+                <div class="sl-row" style="margin-bottom:8px"><label style="font-size:10px;color:var(--muted);min-width:40px">Size</label><input type="range" id="sl-ssize" min="8" max="40" value="13" step="1" oninput="setVal('sSize',+this.value);applyAsset();document.getElementById('sv-ssize').textContent=this.value+'px'"><span class="sl-val" id="sv-ssize">13px</span></div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><label style="font-size:10px;color:var(--muted);flex:1">Color</label><input type="color" id="ctrl-scolor" value="#dddddd" oninput="setVal('sColor',this.value);applyAsset()" style="width:40px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:1px"></div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Case</label>
+                <div class="btn-group" id="scase-group" style="margin-bottom:8px">
+                  <button class="btn-opt"    data-val="uppercase"  onclick="btnSetCase('s',this)" style="font-size:9px">AA</button>
+                  <button class="btn-opt"    data-val="lowercase"  onclick="btnSetCase('s',this)" style="font-size:9px">aa</button>
+                  <button class="btn-opt"    data-val="capitalize" onclick="btnSetCase('s',this)" style="font-size:9px">Aa</button>
+                  <button class="btn-opt on" data-val="none"       onclick="btnSetCase('s',this)" style="font-size:9px">&#x2014;</button>
+                </div>
+                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Font</label>
+                <div class="font-picker" style="margin-bottom:4px">
+                  <select id="fp-s-input" onchange="applyGoogleFont('s',this.value)">
+                    <option value="">Default (Barlow)</option>
+                    <optgroup label="Sans Serif"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Montserrat</option><option>Poppins</option><option>Lato</option><option>Nunito</option><option>Raleway</option><option>Work Sans</option><option>DM Sans</option><option>Plus Jakarta Sans</option><option>Outfit</option><option>Space Grotesk</option><option>Urbanist</option><option>Manrope</option></optgroup>
+                    <optgroup label="Display / Bold"><option>Bebas Neue</option><option>Barlow Condensed</option><option>Anton</option><option>Oswald</option><option>Black Han Sans</option><option>Fjalla One</option><option>Russo One</option><option>Righteous</option><option>Exo 2</option><option>Chakra Petch</option></optgroup>
+                    <optgroup label="Serif"><option>Playfair Display</option><option>Merriweather</option><option>Lora</option><option>Cormorant Garamond</option><option>DM Serif Display</option><option>Libre Baskerville</option></optgroup>
+                    <optgroup label="Mono"><option>JetBrains Mono</option><option>Space Mono</option><option>IBM Plex Mono</option><option>Fira Code</option></optgroup>
+                  </select>
+                  <button class="font-upload-btn" onclick="resetFont('s')" title="Reset">&#x21BA;</button>
+                </div>
+                <div style="display:flex;gap:4px;margin-bottom:4px"><input type="file" id="fp-s-file" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="applyCustomFont('s',this)"><button class="font-upload-btn" style="flex:1;text-align:left" onclick="document.getElementById('fp-s-file').click()">&#x2191; Upload custom font</button></div>
+                <div id="fp-s-name" style="font-size:9px;color:var(--accent);margin-bottom:4px;display:none"></div>
+                <div class="adv-toggle" onclick="toggleAdv('sadv')">Advanced <svg id="adv-chev-sadv" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle"><path d="M6 9l6 6 6-6"/></svg></div>
+                <div id="adv-sadv" style="display:none;margin-top:8px">
+                  <div class="sl-row" style="margin-bottom:6px"><label style="font-size:10px;color:var(--muted);min-width:52px">Spacing</label><input type="range" id="sl-skern" min="-2" max="20" value="0" step="1" oninput="setVal('sKern',+this.value);applyAsset();document.getElementById('sv-skern').textContent=this.value+'px'"><span class="sl-val" id="sv-skern">0px</span></div>
+                  <div class="sl-row" style="margin-bottom:6px"><label style="font-size:10px;color:var(--muted);min-width:52px">Gap</label><input type="range" id="sl-sgap" min="0" max="40" value="10" step="1" oninput="setVal('sGap',+this.value);applyAsset();document.getElementById('sv-sgap').textContent=this.value+'px'"><span class="sl-val" id="sv-sgap">10px</span></div>
+                  <div style="padding-top:6px;border-top:1px solid var(--border)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><label style="font-size:10px;color:var(--muted)">Gradient</label><label class="toggle" style="transform:scale(0.85);transform-origin:right center"><input type="checkbox" id="ctrl-sgrad" onchange="setVal('sGrad',this.checked);applyAsset();document.getElementById('sgrad-controls').style.display=this.checked?'block':'none'"><span class="tog-sl"></span></label></div>
+                    <div id="sgrad-controls" style="display:none">
+                      <div class="row2" style="margin-bottom:4px"><div><label style="font-size:9px">C1</label><input type="color" id="ctrl-sgc1" value="#ffffff" oninput="setVal('sGradC1',this.value);applyAsset()"></div><div><label style="font-size:9px">C2</label><input type="color" id="ctrl-sgc2" value="#e8ff00" oninput="setVal('sGradC2',this.value);applyAsset()"></div></div>
+                      <div class="btn-group" id="sgrad-dir-group"><button class="btn-opt" data-val="180" onclick="btnSetSGrad(this)">&#x2193;</button><button class="btn-opt on" data-val="90" onclick="btnSetSGrad(this)">&#x2192;</button><button class="btn-opt" data-val="135" onclick="btnSetSGrad(this)">&#x2198;</button><button class="btn-opt" data-val="45" onclick="btnSetSGrad(this)">&#x2197;</button></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="rr-group-body" id="grp-body-sstyle" style="display:none">
+
+          <div class="rr-group">
+            <div class="rr-group-hdr" onclick="toggleRRGroup('tbw')">
+              <div><div class="rr-group-title">Text Block</div><div class="rr-group-sub">Width</div></div>
+              <svg class="rr-group-chev" id="grp-chev-tbw" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="rr-group-body" id="grp-body-tbw" style="display:none">
+              <div class="ct-card"><div class="sl-row"><label style="font-size:10px;color:var(--muted);min-width:52px">Width</label><input type="range" id="sl-tbw" min="80" max="560" value="220" step="1" oninput="setVal('tbWidth',+this.value);applyAsset();document.getElementById('sv-tbw').textContent=this.value+'px'"><span class="sl-val" id="sv-tbw">220px</span></div></div>
+            </div>
+          </div>
+
+          <!-- App Store Badges -->
+          <div class="rr-group">
+            <div class="rr-group-hdr" onclick="toggleRRGroup('badges')">
+              <div><div class="rr-group-title">App Store Badges</div><div class="rr-group-sub">Style &middot; Colors</div></div>
+              <svg class="rr-group-chev" id="grp-chev-badges" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="rr-group-body" id="grp-body-badges" style="display:none">
+              <div class="ct-card">
+                <div class="toggle-row" style="margin-bottom:8px"><span style="font-size:11px;font-weight:600;color:var(--text)">Show badges</span><label class="toggle"><input type="checkbox" id="ctrl-badgeshow" checked onchange="setVal('badgeShow',this.checked);applyAsset()"><span class="tog-sl"></span></label></div>
+                <div id="badge-controls">
+                  <div class="btn-group" id="badge-style-group" style="margin-bottom:8px">
+                    <button class="btn-opt on" data-val="glass"   onclick="btnSetBadge(this)">Glass</button>
+                    <button class="btn-opt"    data-val="solid"   onclick="btnSetBadge(this)">Solid</button>
+                    <button class="btn-opt"    data-val="outline" onclick="btnSetBadge(this)">Outline</button>
+                  </div>
+                  <div id="badge-color-row" style="display:none">
+                    <div class="row2" style="margin-bottom:6px">
+                      <div><label style="font-size:9px;color:var(--muted);display:block;margin-bottom:3px">Badge bg</label><input type="color" id="ctrl-badgecolor" value="#ffffff" style="width:100%;height:28px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px" oninput="setVal('badgeColor',this.value);applyAsset()"></div>
+                      <div><label style="font-size:9px;color:var(--muted);display:block;margin-bottom:3px">Text color</label><input type="color" id="ctrl-badge-txtcolor" value="#ffffff" style="width:100%;height:28px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px" oninput="setVal('badgeTxtColor',this.value);applyAsset()"></div>
+                    </div>
+                    <div><label style="font-size:9px;color:var(--muted);display:block;margin-bottom:3px">Logo tint</label><input type="color" id="ctrl-badge-logocolor" value="#ffffff" style="width:100%;height:28px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px" oninput="setVal('badgeLogoColor',this.value);applyAsset()"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /icon-panel-copy -->
+
+        <!-- ── OVERLAYS PANEL ── -->
+        <div id="icon-panel-overlays" style="display:none">
+
+          <!-- Overlay type icon row -->
+          <div class="rr-icon-row">
+            <button class="rr-icon-btn active" id="ov-icon-btn-divider" onclick="toggleOvIcon('divider')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/></svg>
+              Divider
+            </button>
+            <button class="rr-icon-btn" id="ov-icon-btn-textbox" onclick="toggleOvIcon('textbox')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg>
+              Text Box
+            </button>
+            <button class="rr-icon-btn" id="ov-icon-btn-border" onclick="toggleOvIcon('border')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+              Border
+            </button>
+            <button class="rr-icon-btn" id="ov-icon-btn-push" onclick="toggleOvIcon('push')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              Push
+            </button>
+            <button class="rr-icon-btn" id="ov-icon-btn-media" onclick="toggleOvIcon('media')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Media
+            </button>
+          </div>
+
+          <!-- Divider panel -->
+          <div id="ov-icon-panel-divider">
             <div class="ct-card">
-              <div class="sl-row" style="margin-bottom:8px"><label style="font-size:10px;color:var(--muted);min-width:40px">Size</label><input type="range" id="sl-ssize" min="8" max="40" value="13" step="1" oninput="setVal('sSize',+this.value);applyAsset();document.getElementById('sv-ssize').textContent=this.value+'px'"><span class="sl-val" id="sv-ssize">13px</span></div>
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><label style="font-size:10px;color:var(--muted);flex:1">Color</label><input type="color" id="ctrl-scolor" value="#dddddd" oninput="setVal('sColor',this.value);applyAsset()" style="width:40px;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:1px"></div>
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Case</label>
-              <div class="btn-group" id="scase-group" style="margin-bottom:8px">
-                <button class="btn-opt"    data-val="uppercase"  onclick="btnSetCase('s',this)" style="font-size:9px">AA</button>
-                <button class="btn-opt"    data-val="lowercase"  onclick="btnSetCase('s',this)" style="font-size:9px">aa</button>
-                <button class="btn-opt"    data-val="capitalize" onclick="btnSetCase('s',this)" style="font-size:9px">Aa</button>
-                <button class="btn-opt on" data-val="none"       onclick="btnSetCase('s',this)" style="font-size:9px">—</button>
-              </div>
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Font</label>
-              <div class="font-picker" style="margin-bottom:4px">
-                <select id="fp-s-input" onchange="applyGoogleFont('s',this.value)">
-                  <option value="">Default (Barlow)</option>
-                  <optgroup label="Sans Serif"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Montserrat</option><option>Poppins</option><option>Lato</option><option>Nunito</option><option>Raleway</option><option>Work Sans</option><option>DM Sans</option><option>Plus Jakarta Sans</option><option>Outfit</option><option>Space Grotesk</option><option>Urbanist</option><option>Manrope</option></optgroup>
-                  <optgroup label="Display / Bold"><option>Bebas Neue</option><option>Barlow Condensed</option><option>Anton</option><option>Oswald</option><option>Black Han Sans</option><option>Fjalla One</option><option>Russo One</option><option>Righteous</option><option>Exo 2</option><option>Chakra Petch</option></optgroup>
-                  <optgroup label="Serif"><option>Playfair Display</option><option>Merriweather</option><option>Lora</option><option>Cormorant Garamond</option><option>DM Serif Display</option><option>Libre Baskerville</option></optgroup>
-                  <optgroup label="Mono"><option>JetBrains Mono</option><option>Space Mono</option><option>IBM Plex Mono</option><option>Fira Code</option></optgroup>
-                </select>
-                <button class="font-upload-btn" onclick="resetFont('s')" title="Reset">↺</button>
-              </div>
-              <div style="display:flex;gap:4px;margin-bottom:4px">
-                <input type="file" id="fp-s-file" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="applyCustomFont('s',this)">
-                <button class="font-upload-btn" style="flex:1;text-align:left" onclick="document.getElementById('fp-s-file').click()">↑ Upload custom font</button>
-              </div>
-              <div id="fp-s-name" style="font-size:9px;color:var(--accent);margin-bottom:4px;display:none"></div>
-              <div class="adv-toggle" onclick="toggleAdv('sadv')">Advanced <svg id="adv-chev-sadv" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle"><path d="M6 9l6 6 6-6"/></svg></div>
-              <div id="adv-sadv" style="display:none;margin-top:8px">
-                <div class="sl-row" style="margin-bottom:6px"><label style="font-size:10px;color:var(--muted);min-width:52px">Spacing</label><input type="range" id="sl-skern" min="-2" max="20" value="0" step="1" oninput="setVal('sKern',+this.value);applyAsset();document.getElementById('sv-skern').textContent=this.value+'px'"><span class="sl-val" id="sv-skern">0px</span></div>
-                <div class="sl-row" style="margin-bottom:6px"><label style="font-size:10px;color:var(--muted);min-width:52px">Gap</label><input type="range" id="sl-sgap" min="0" max="40" value="10" step="1" oninput="setVal('sGap',+this.value);applyAsset();document.getElementById('sv-sgap').textContent=this.value+'px'"><span class="sl-val" id="sv-sgap">10px</span></div>
-                <div style="padding-top:6px;border-top:1px solid var(--border)">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                    <label style="font-size:10px;color:var(--muted)">Gradient</label>
-                    <label class="toggle" style="transform:scale(0.85);transform-origin:right center"><input type="checkbox" id="ctrl-sgrad" onchange="setVal('sGrad',this.checked);applyAsset();document.getElementById('sgrad-controls').style.display=this.checked?'block':'none'"><span class="tog-sl"></span></label>
-                  </div>
-                  <div id="sgrad-controls" style="display:none">
-                    <div class="row2" style="margin-bottom:4px"><div><label style="font-size:9px">C1</label><input type="color" id="ctrl-sgc1" value="#ffffff" oninput="setVal('sGradC1',this.value);applyAsset()"></div><div><label style="font-size:9px">C2</label><input type="color" id="ctrl-sgc2" value="#e8ff00" oninput="setVal('sGradC2',this.value);applyAsset()"></div></div>
-                    <div class="btn-group" id="sgrad-dir-group"><button class="btn-opt" data-val="180" onclick="btnSetSGrad(this)">↓</button><button class="btn-opt on" data-val="90" onclick="btnSetSGrad(this)">→</button><button class="btn-opt" data-val="135" onclick="btnSetSGrad(this)">↘</button><button class="btn-opt" data-val="45" onclick="btnSetSGrad(this)">↗</button></div>
-                  </div>
-                </div>
-              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:11px;font-weight:600;color:var(--text)">Divider Line</span><label class="toggle"><input type="checkbox" id="ov-divider-on" onchange="ovSet('divider',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
+              <label>Style</label><div class="btn-group" id="ov-div-style-group" style="margin-bottom:6px"><button class="btn-opt on" data-val="line" onclick="ovBtnSet('ov-div-style-group','dividerStyle',this);renderOverlays()">Line</button><button class="btn-opt" data-val="line-dot" onclick="ovBtnSet('ov-div-style-group','dividerStyle',this);renderOverlays()">&bull; Line &bull;</button><button class="btn-opt" data-val="dot-line-dot" onclick="ovBtnSet('ov-div-style-group','dividerStyle',this);renderOverlays()">&bull;&mdash;&bull;</button></div>
+              <label>Color</label><input type="color" id="ov-div-color" value="#ffffff" style="margin-bottom:6px" oninput="ovSet('dividerColor',this.value);renderOverlays()">
+              <label>Opacity</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-div-op" min="10" max="100" value="40" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('dividerOp',+this.value);document.getElementById('ov-div-opv').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-div-opv">40%</span></div>
+              <div class="toggle-row"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" id="ov-div-behind" onchange="ovSet('dividerBehind',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
             </div>
           </div>
-        </div>
 
-        <!-- TEXT BLOCK WIDTH ─────────────────────────── -->
-        <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('tbw')">
-            <div><div class="rr-group-title">Text Block</div><div class="rr-group-sub">Width</div></div>
-            <svg class="rr-group-chev" id="grp-chev-tbw" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          <!-- Text Box panel -->
+          <div id="ov-icon-panel-textbox" style="display:none">
+            <div id="tb-list"></div>
+            <button class="apply-all-btn" style="display:block;margin-top:4px" onclick="addTextBox()">+ Add Text Box</button>
           </div>
-          <div class="rr-group-body" id="grp-body-tbw" style="display:none">
+
+          <!-- Border panel -->
+          <div id="ov-icon-panel-border" style="display:none">
             <div class="ct-card">
-              <div class="sl-row"><label style="font-size:10px;color:var(--muted);min-width:52px">Width</label><input type="range" id="sl-tbw" min="80" max="560" value="220" step="1" oninput="setVal('tbWidth',+this.value);applyAsset();document.getElementById('sv-tbw').textContent=this.value+'px'"><span class="sl-val" id="sv-tbw">220px</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:11px;font-weight:600;color:var(--text)">Asset Border</span><label class="toggle"><input type="checkbox" id="ov-border-on" onchange="ovSet('border',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
+              <label>Color</label><input type="color" id="ov-border-color" value="#ffffff" style="margin-bottom:6px" oninput="ovSet('borderColor',this.value);renderOverlays()">
+              <label>Width</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-border-w" min="1" max="12" value="2" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('borderWidth',+this.value);document.getElementById('ov-border-wv').textContent=this.value+'px';renderOverlays()"><span class="sl-val" id="ov-border-wv">2px</span></div>
+              <label>Inset</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-border-inset" min="4" max="40" value="12" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('borderInset',+this.value);document.getElementById('ov-border-insetv').textContent=this.value+'px';renderOverlays()"><span class="sl-val" id="ov-border-insetv">12px</span></div>
+              <label>Radius</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-border-r" min="0" max="40" value="10" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('borderRadius',+this.value);document.getElementById('ov-border-rv').textContent=this.value+'px';renderOverlays()"><span class="sl-val" id="ov-border-rv">10px</span></div>
+              <div class="toggle-row"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" id="ov-border-behind" onchange="ovSet('borderBehind',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
             </div>
           </div>
-        </div>
 
-        <!-- BACKGROUND ──────────────────────────────── -->
-        <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('bg')">
-            <div><div class="rr-group-title">Background</div><div class="rr-group-sub">Color · Image · Grain</div></div>
-            <svg class="rr-group-chev" id="grp-chev-bg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-          <div class="rr-group-body" id="grp-body-bg" style="display:none">
+          <!-- Push Notification panel -->
+          <div id="ov-icon-panel-push" style="display:none">
             <div class="ct-card">
-              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Color</label>
-              <input type="color" id="ctrl-bg1" value="#111111" oninput="setVal('bg1',this.value);applyAsset()" style="width:100%;height:32px;margin-bottom:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px">
-              <div class="toggle-row" style="margin-bottom:6px"><span class="toggle-label">Use Gradient</span><label class="toggle"><input type="checkbox" id="ctrl-gradient" onchange="setVal('useGrad',this.checked);applyAsset();toggleBgGradient(this.checked)"><span class="tog-sl"></span></label></div>
-              <div id="bg-color2-row" style="display:none">
-                <label style="margin-bottom:4px;display:block;font-size:10px;color:var(--muted)" id="bg2-label">Color 2</label>
-                <input type="color" id="ctrl-bg2" value="#cc0000" oninput="setVal('bg2',this.value);applyAsset()" style="width:100%;height:32px;margin-bottom:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px">
-                <label style="margin-bottom:5px;display:block;font-size:10px;color:var(--muted)">Direction</label>
-                <div class="btn-group" id="grad-group" style="margin-bottom:8px">
-                  <button class="btn-opt on" data-key="gradDir" data-val="to bottom right" onclick="btnSet('grad-group','gradDir',this)">↘</button>
-                  <button class="btn-opt"    data-key="gradDir" data-val="to right"         onclick="btnSet('grad-group','gradDir',this)">→</button>
-                  <button class="btn-opt"    data-key="gradDir" data-val="to bottom"        onclick="btnSet('grad-group','gradDir',this)">↓</button>
-                  <button class="btn-opt"    data-key="gradDir" data-val="to top right"     onclick="btnSet('grad-group','gradDir',this)">↗</button>
-                </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:11px;font-weight:600;color:var(--text)">Push Notification</span><label class="toggle"><input type="checkbox" id="ov-push-on" onchange="ovSet('push',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
+              <label>App icon</label>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div id="ov-push-icon-preview" style="width:36px;height:36px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('ov-push-icon-upload').click()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><input type="file" id="ov-push-icon-upload" accept="image/*" style="display:none" onchange="handlePushIconUpload(event)"><span style="font-size:10px;color:var(--muted)">Click to upload</span></div>
+              <label>App name</label><input type="text" class="ctrl-text" id="ov-push-app" value="YOUR APP" oninput="ovSet('pushApp',this.value);renderOverlays()" style="margin-bottom:6px">
+              <label>Title</label><input type="text" class="ctrl-text" id="ov-push-title" value="DON'T MISS OUT!" oninput="ovSet('pushTitle',this.value);renderOverlays()" style="margin-bottom:6px">
+              <label>Message</label>
+              <textarea id="ov-push-msg" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;padding:6px 8px;resize:vertical;min-height:44px;outline:none;margin-bottom:6px" oninput="ovSet('pushMsg',this.value);renderOverlays()">Head to the app store and download to access exclusive deals!</textarea>
+              <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+                <label style="display:block;margin-bottom:4px">Font</label>
+                <div class="font-picker"><select id="fp-push-input" onchange="applyGoogleFont('push',this.value)"><option value="">Default</option><optgroup label="Sans Serif"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Montserrat</option><option>Poppins</option><option>Lato</option><option>Nunito</option><option>Raleway</option><option>Work Sans</option><option>DM Sans</option><option>Plus Jakarta Sans</option><option>Outfit</option><option>Space Grotesk</option><option>Urbanist</option><option>Manrope</option></optgroup><optgroup label="Display / Bold"><option>Bebas Neue</option><option>Barlow Condensed</option><option>Anton</option><option>Oswald</option><option>Black Han Sans</option><option>Fjalla One</option><option>Russo One</option><option>Righteous</option><option>Exo 2</option><option>Chakra Petch</option></optgroup><optgroup label="Serif"><option>Playfair Display</option><option>Merriweather</option><option>Lora</option><option>Cormorant Garamond</option><option>DM Serif Display</option><option>Libre Baskerville</option></optgroup><optgroup label="Mono"><option>JetBrains Mono</option><option>Space Mono</option><option>IBM Plex Mono</option><option>Fira Code</option></optgroup></select><button class="font-upload-btn" onclick="resetFont('push')" title="Reset">&#x21BA;</button></div>
+                <div style="display:flex;gap:4px;margin-top:4px;margin-bottom:6px"><input type="file" id="fp-push-file" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="applyCustomFont('push',this)"><button class="font-upload-btn" style="flex:1;text-align:left" onclick="document.getElementById('fp-push-file').click()">&#x2191; Upload font</button></div>
+                <div id="fp-push-name" style="font-size:9px;color:var(--accent);margin-bottom:4px;display:none"></div>
               </div>
-              <button class="apply-all-btn" onclick="applyBgToAll()">Apply to all assets</button>
-              <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:6px">Background Image</label>
-                <div id="bg-img-preview-wrap">
-                  <div class="upload-zone" style="margin-bottom:5px" onclick="document.getElementById('bg-img-upload').click()">
-                    <input type="file" id="bg-img-upload" accept="image/*" onchange="handleBgImgUpload(event)">
-                    <div class="uz-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 4px;color:var(--muted)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-                    <div class="uz-text"><strong>Upload Image</strong>Behind phone + text</div>
-                  </div>
-                </div>
-                <div id="bg-img-controls" style="display:none">
-                  <div class="bg-img-preview" id="bg-img-preview-box"><img id="bg-img-thumb" src="" alt="bg"><button class="bg-img-clear" onclick="clearBgImg()">✕</button></div>
-                  <div class="sl-row"><label>Opacity</label><input type="range" id="sl-bgop" min="0" max="100" value="100" oninput="setVal('bgOp',+this.value);applyAsset();document.getElementById('sv-bgop').textContent=this.value+'%'"><span class="sl-val" id="sv-bgop">100%</span></div>
-                  <div class="sl-row"><label>Blur</label><input type="range" id="sl-bgblur" min="0" max="30" value="0" oninput="setVal('bgBlur',+this.value);applyAsset();document.getElementById('sv-bgblur').textContent=this.value+'px'"><span class="sl-val" id="sv-bgblur">0px</span></div>
-                  <div class="row2"><div><label>Overlay Color</label><input type="color" id="ctrl-bgovcolor" value="#000000" oninput="setVal('bgOvColor',this.value);applyAsset()"></div><div><label>Overlay %</label><div style="display:flex;align-items:center;gap:4px;margin-top:4px"><input type="range" id="sl-bgovop" min="0" max="90" value="0" style="flex:1;accent-color:var(--accent)" oninput="setVal('bgOvOp',+this.value);applyAsset();document.getElementById('sv-bgovop').textContent=this.value+'%'"><span class="sl-val" id="sv-bgovop">0%</span></div></div></div>
-                </div>
-              </div>
-              <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-                <div class="toggle-row"><span class="toggle-label">Film Grain</span><label class="toggle"><input type="checkbox" id="ctrl-noise" onchange="setVal('noise',this.checked);applyAsset()"><span class="tog-sl"></span></label></div>
-              </div>
+              <div style="display:flex;gap:10px;margin-bottom:6px;margin-top:4px"><div><label>Title color</label><input type="color" id="ov-push-tcolor" value="#111111" oninput="ovSet('pushTitleColor',this.value);renderOverlays()"></div><div><label>Msg color</label><input type="color" id="ov-push-mcolor" value="#444444" oninput="ovSet('pushMsgColor',this.value);renderOverlays()"></div></div>
+              <label>Scale</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-push-scale" min="40" max="150" value="100" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('pushScale',+this.value);document.getElementById('ov-push-scalev').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-push-scalev">100%</span></div>
+              <label>Width %</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-push-width" min="30" max="100" value="85" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('pushWidth',+this.value);document.getElementById('ov-push-widthv').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-push-widthv">85%</span></div>
+              <div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-end"><div><label>Background</label><input type="color" id="ov-push-bgcolor" value="#ffffff" oninput="ovSet('pushBgColor',this.value);renderOverlays()"></div><div style="flex:1"><label>Bg opacity</label><div style="display:flex;align-items:center;gap:4px;margin-top:2px"><input type="range" id="ov-push-bgop" min="0" max="100" value="100" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('pushBgOp',+this.value);document.getElementById('ov-push-bgopv').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-push-bgopv">100%</span></div></div></div>
+              <div class="toggle-row" style="margin-bottom:4px"><span class="toggle-label" style="font-size:10px">Show store badges</span><label class="toggle"><input type="checkbox" id="ov-push-badges" checked onchange="ovSet('pushBadges',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
+              <div class="toggle-row"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" id="ov-push-behind" onchange="ovSet('pushBehind',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
             </div>
           </div>
-        </div>
 
-        <!-- BADGES ──────────────────────────────────── -->
-        <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('badges')">
-            <div><div class="rr-group-title">App Store Badges</div><div class="rr-group-sub">Style · Colors</div></div>
-            <svg class="rr-group-chev" id="grp-chev-badges" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-          <div class="rr-group-body" id="grp-body-badges" style="display:none">
-            <div class="ct-card">
-              <div class="toggle-row" style="margin-bottom:8px"><span style="font-size:11px;font-weight:600;color:var(--text)">Show badges</span><label class="toggle"><input type="checkbox" id="ctrl-badgeshow" checked onchange="setVal('badgeShow',this.checked);applyAsset()"><span class="tog-sl"></span></label></div>
-              <div id="badge-controls">
-                <div class="btn-group" id="badge-style-group" style="margin-bottom:8px">
-                  <button class="btn-opt on" data-val="glass"   onclick="btnSetBadge(this)">Glass</button>
-                  <button class="btn-opt"    data-val="solid"   onclick="btnSetBadge(this)">Solid</button>
-                  <button class="btn-opt"    data-val="outline" onclick="btnSetBadge(this)">Outline</button>
-                </div>
-                <div id="badge-color-row" style="display:none">
-                  <div class="row2" style="margin-bottom:6px">
-                    <div><label style="font-size:9px;color:var(--muted);display:block;margin-bottom:3px">Badge bg</label><input type="color" id="ctrl-badgecolor" value="#ffffff" style="width:100%;height:28px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px" oninput="setVal('badgeColor',this.value);applyAsset()"></div>
-                    <div><label style="font-size:9px;color:var(--muted);display:block;margin-bottom:3px">Text color</label><input type="color" id="ctrl-badge-txtcolor" value="#ffffff" style="width:100%;height:28px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px" oninput="setVal('badgeTxtColor',this.value);applyAsset()"></div>
-                  </div>
-                  <div><label style="font-size:9px;color:var(--muted);display:block;margin-bottom:3px">Logo tint</label><input type="color" id="ctrl-badge-logocolor" value="#ffffff" style="width:100%;height:28px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px" oninput="setVal('badgeLogoColor',this.value);applyAsset()"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /rr-design -->
-
-      <!-- ═══ LAYOUT TAB: Phone + Elements + Overlays ═══ -->
-      <div class="rr-panel" id="rr-layout">
-
-        <!-- PHONE ───────────────────────────────────── -->
-        <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('phone')">
-            <div><div class="rr-group-title">Phone</div><div class="rr-group-sub">Position · Frame · Shadow</div></div>
-            <svg class="rr-group-chev open" id="grp-chev-phone" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-          <div class="rr-group-body" id="grp-body-phone">
-            <div class="ct-card">
-              <div class="sl-row" style="margin-bottom:6px"><label>Scale</label><input type="range" id="sl-pscale" min="30" max="200" value="100" oninput="setPhoneVal('scale',+this.value/100);document.getElementById('sv-pscale').textContent=this.value+'%'"><span class="sl-val" id="sv-pscale">100%</span></div>
-              <div class="sl-row" style="margin-bottom:6px"><label>Horizontal</label><input type="range" id="sl-px" min="-300" max="200" value="0" oninput="setPhoneVal('x',+this.value);document.getElementById('sv-px').textContent=this.value+'px'"><span class="sl-val" id="sv-px">0px</span></div>
-              <div class="sl-row" style="margin-bottom:6px"><label>Vertical</label><input type="range" id="sl-py" min="-400" max="200" value="0" oninput="setPhoneVal('y',+this.value);document.getElementById('sv-py').textContent=this.value+'px'"><span class="sl-val" id="sv-py">0px</span></div>
-              <div class="sl-row" style="margin-bottom:8px"><label>Rotation</label><input type="range" id="sl-prot" min="-45" max="45" value="0" oninput="setPhoneVal('rot',+this.value);document.getElementById('sv-prot').textContent=this.value+'°'"><span class="sl-val" id="sv-prot">0°</span></div>
-              <p style="font-size:10px;color:var(--muted);margin-bottom:8px">Drag phone on canvas to reposition.</p>
-              <div style="display:flex;gap:5px;margin-bottom:10px">
-                <button class="btn-opt" style="flex:1" onclick="resetPhone()">↺ Reset</button>
-                <button class="apply-all-btn" style="flex:1;margin:0" onclick="applyPhoneToAll()">Apply to all</button>
-              </div>
-              <div style="padding-top:8px;border-top:1px solid var(--border);margin-bottom:8px">
-                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:6px">Frame</label>
-                <div class="row2">
-                  <div><label style="font-size:9px;color:var(--muted)">Color</label><input type="color" id="ctrl-framecolor" value="#383838" oninput="setVal('frameColor',this.value);applyFrameColor(currentTab)"></div>
-                  <div><label style="font-size:9px;color:var(--muted)">Opacity</label><div style="display:flex;align-items:center;gap:4px;margin-top:3px"><input type="range" id="sl-frameop" min="0" max="100" value="22" style="flex:1;accent-color:var(--accent)" oninput="setVal('frameOp',+this.value/100);applyFrameColor(currentTab);document.getElementById('sv-frameop').textContent=this.value+'%'"><span class="sl-val" id="sv-frameop">22%</span></div></div>
-                </div>
-              </div>
-              <div class="adv-toggle" onclick="toggleAdv('phoneadv')">Screenshot Crop &amp; Shadow <svg id="adv-chev-phoneadv" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle"><path d="M6 9l6 6 6-6"/></svg></div>
-              <div id="adv-phoneadv" style="display:none;margin-top:8px">
-                <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:5px">Screenshot Crop</label>
-                <div class="sl-row" style="margin-bottom:6px"><label>X</label><input type="range" id="sl-cropx" min="-200" max="200" value="0" oninput="setVal('cropX',+this.value);applyCrop(currentTab);document.getElementById('sv-cropx').textContent=this.value+'px'"><span class="sl-val" id="sv-cropx">0px</span></div>
-                <div class="sl-row" style="margin-bottom:6px"><label>Y</label><input type="range" id="sl-cropy" min="-300" max="300" value="0" oninput="setVal('cropY',+this.value);applyCrop(currentTab);document.getElementById('sv-cropy').textContent=this.value+'px'"><span class="sl-val" id="sv-cropy">0px</span></div>
-                <div class="sl-row" style="margin-bottom:6px"><label>Scale</label><input type="range" id="sl-crops" min="80" max="200" value="100" oninput="setVal('cropS',+this.value/100);applyCrop(currentTab);document.getElementById('sv-crops').textContent=this.value+'%'"><span class="sl-val" id="sv-crops">100%</span></div>
-                <button class="btn-opt" style="width:100%;margin-bottom:10px" onclick="resetCrop()">↺ Reset Crop</button>
-                <div style="padding-top:8px;border-top:1px solid var(--border)">
-                  <div class="toggle-row" style="margin-bottom:6px"><span class="toggle-label">Drop Shadow</span><label class="toggle"><input type="checkbox" id="ctrl-phoneshadow" onchange="setVal('phoneShadow',this.checked);togglePhoneShadowUI(this.checked);applyPhoneShadow(currentTab)"><span class="tog-sl"></span></label></div>
-                  <div id="phone-shadow-controls" style="opacity:0.35;pointer-events:none">
-                    <div class="row2" style="margin-bottom:8px"><div><label>Color</label><input type="color" id="ctrl-pshcolor" value="#000000" oninput="setVal('phoneShadowColor',this.value);applyPhoneShadow(currentTab)"></div><div><label>Opacity</label><div style="display:flex;align-items:center;gap:4px;margin-top:4px"><input type="range" id="sl-pshop" min="0" max="100" value="45" style="flex:1;accent-color:var(--accent)" oninput="setVal('phoneShadowOp',+this.value/100);applyPhoneShadow(currentTab);document.getElementById('sv-pshop').textContent=this.value+'%'"><span class="sl-val" id="sv-pshop">45%</span></div></div></div>
-                    <div class="sl-row" style="margin-bottom:6px"><label>Blur</label><input type="range" id="sl-pshblur" min="0" max="80" value="40" oninput="setVal('phoneShadowBlur',+this.value);applyPhoneShadow(currentTab);document.getElementById('sv-pshblur').textContent=this.value+'px'"><span class="sl-val" id="sv-pshblur">40px</span></div>
-                    <div class="sl-row" style="margin-bottom:6px"><label>Offset X</label><input type="range" id="sl-pshx" min="-50" max="50" value="0" oninput="setVal('phoneShadowX',+this.value);applyPhoneShadow(currentTab);document.getElementById('sv-pshx').textContent=this.value+'px'"><span class="sl-val" id="sv-pshx">0px</span></div>
-                    <div class="sl-row"><label>Offset Y</label><input type="range" id="sl-pshy" min="-50" max="50" value="20" oninput="setVal('phoneShadowY',+this.value);applyPhoneShadow(currentTab);document.getElementById('sv-pshy').textContent=this.value+'px'"><span class="sl-val" id="sv-pshy">20px</span></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ELEMENTS ────────────────────────────────── -->
-        <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('elements')">
-            <div><div class="rr-group-title">Elements</div><div class="rr-group-sub">Emoji · Icons · Images</div></div>
-            <svg class="rr-group-chev" id="grp-chev-elements" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-          <div class="rr-group-body" id="grp-body-elements" style="display:none">
+          <!-- Media panel (emoji + icons + image) -->
+          <div id="ov-icon-panel-media" style="display:none">
             <div class="elem-type-tabs">
               <button class="elem-type-tab active" onclick="switchElemTab('emoji',this)">Emoji</button>
               <button class="elem-type-tab" onclick="switchElemTab('icon',this)">Icons</button>
               <button class="elem-type-tab" onclick="switchElemTab('image',this)">Image</button>
             </div>
             <div id="elem-emoji-panel">
-              <input class="elem-search" id="elem-emoji-search" placeholder="Search emojis…" oninput="renderEmojiGrid(this.value)">
+              <input class="elem-search" id="elem-emoji-search" placeholder="Search emojis&hellip;" oninput="renderEmojiGrid(this.value)">
               <div class="emoji-grid" id="emoji-grid"></div>
             </div>
             <div id="elem-icon-panel" style="display:none">
@@ -1143,7 +1161,7 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
                 <button class="btn-opt on" id="icon-pop-btn" onclick="switchIconTab('popular',this)">Popular</button>
                 <button class="btn-opt" id="icon-all-btn" onclick="switchIconTab('all',this)">All</button>
               </div>
-              <input class="elem-search" id="elem-icon-search" placeholder="Search icons…" oninput="renderIconGrid(this.value)">
+              <input class="elem-search" id="elem-icon-search" placeholder="Search icons&hellip;" oninput="renderIconGrid(this.value)">
               <div class="icon-grid" id="icon-grid"></div>
             </div>
             <div id="elem-image-panel" style="display:none">
@@ -1156,79 +1174,84 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
             <div id="elem-list" style="margin-top:8px"></div>
             <button class="apply-all-btn" id="elem-apply-all-btn" style="display:none" onclick="applyElementsToAll()">Apply elements to all assets</button>
           </div>
+
+          <!-- Extra Screenshots -->
+          <div style="margin-top:8px">
+            <div class="adv-toggle" onclick="toggleAdv('xscradv')" style="font-size:9px">Extra Screenshots <svg id="adv-chev-xscradv" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle"><path d="M6 9l6 6 6-6"/></svg></div>
+            <div id="adv-xscradv" style="display:none;margin-top:8px">
+              <p style="font-size:10px;color:var(--muted);margin-bottom:8px">Up to 3 draggable screenshot frames.</p>
+              <div id="ov-xscr-list"></div>
+              <button class="apply-all-btn" id="ov-xscr-add" onclick="addExtraScreen()" style="display:block;margin-top:4px">+ Add Screenshot</button>
+            </div>
+          </div>
+
+        </div><!-- /icon-panel-overlays -->
+
+      </div><!-- /rr-design -->
+
+      <!-- ═══ LAYOUT TAB ═══ -->
+      <div class="rr-panel" id="rr-layout">
+
+        <div class="rr-group">
+          <div class="rr-group-hdr" onclick="toggleRRGroup('phone')">
+            <div><div class="rr-group-title">Phone</div><div class="rr-group-sub">Position &middot; Rotation &middot; Scale</div></div>
+            <svg class="rr-group-chev open" id="grp-chev-phone" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="rr-group-body" id="grp-body-phone">
+            <div class="ct-card">
+              <div class="sl-row" style="margin-bottom:6px"><label>Scale</label><input type="range" id="sl-pscale" min="30" max="200" value="100" oninput="setPhoneVal('scale',+this.value/100);document.getElementById('sv-pscale').textContent=this.value+'%'"><span class="sl-val" id="sv-pscale">100%</span></div>
+              <div class="sl-row" style="margin-bottom:6px"><label>Horizontal</label><input type="range" id="sl-px" min="-300" max="200" value="0" oninput="setPhoneVal('x',+this.value);document.getElementById('sv-px').textContent=this.value+'px'"><span class="sl-val" id="sv-px">0px</span></div>
+              <div class="sl-row" style="margin-bottom:6px"><label>Vertical</label><input type="range" id="sl-py" min="-400" max="200" value="0" oninput="setPhoneVal('y',+this.value);document.getElementById('sv-py').textContent=this.value+'px'"><span class="sl-val" id="sv-py">0px</span></div>
+              <div class="sl-row" style="margin-bottom:8px"><label>Rotation</label><input type="range" id="sl-prot" min="-45" max="45" value="0" oninput="setPhoneVal('rot',+this.value);document.getElementById('sv-prot').textContent=this.value+'&#xb0;'"><span class="sl-val" id="sv-prot">0&#xb0;</span></div>
+              <p style="font-size:10px;color:var(--muted);margin-bottom:8px">Drag phone on canvas to reposition.</p>
+              <div style="display:flex;gap:5px"><button class="btn-opt" style="flex:1" onclick="resetPhone()">&#x21BA; Reset</button><button class="apply-all-btn" style="flex:1;margin:0" onclick="applyPhoneToAll()">Apply to all</button></div>
+            </div>
+          </div>
         </div>
 
-        <!-- OVERLAYS ────────────────────────────────── -->
         <div class="rr-group">
-          <div class="rr-group-hdr" onclick="toggleRRGroup('overlays')">
-            <div><div class="rr-group-title">Overlays</div><div class="rr-group-sub">Push · Divider · Border · Text</div></div>
-            <svg class="rr-group-chev" id="grp-chev-overlays" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          <div class="rr-group-hdr" onclick="toggleRRGroup('frame')">
+            <div><div class="rr-group-title">Frame</div><div class="rr-group-sub">Color &middot; Opacity</div></div>
+            <svg class="rr-group-chev" id="grp-chev-frame" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
           </div>
-          <div class="rr-group-body" id="grp-body-overlays" style="display:none">
-            <div class="ct-card" style="padding:0;overflow:hidden">
-              <div class="ov-accord-hdr" onclick="toggleOvAccord('divider')"><div style="display:flex;align-items:center;gap:8px"><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" id="ov-divider-on" onchange="ovSet('divider',this.checked);renderOverlays()"><span class="tog-sl"></span></label><span class="ct-card-title" style="margin:0">Divider Line</span></div><svg id="ov-chev-divider" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-              <div class="ov-accord-body" id="ov-body-divider" style="display:none">
-                <label>Style</label><div class="btn-group" id="ov-div-style-group" style="margin-bottom:6px"><button class="btn-opt on" data-val="line" onclick="ovBtnSet('ov-div-style-group','dividerStyle',this);renderOverlays()">Line</button><button class="btn-opt" data-val="line-dot" onclick="ovBtnSet('ov-div-style-group','dividerStyle',this);renderOverlays()">• Line •</button><button class="btn-opt" data-val="dot-line-dot" onclick="ovBtnSet('ov-div-style-group','dividerStyle',this);renderOverlays()">•—•</button></div>
-                <label>Color</label><input type="color" id="ov-div-color" value="#ffffff" style="margin-bottom:6px" oninput="ovSet('dividerColor',this.value);renderOverlays()">
-                <label>Opacity</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-div-op" min="10" max="100" value="40" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('dividerOp',+this.value);document.getElementById('ov-div-opv').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-div-opv">40%</span></div>
-                <div class="toggle-row"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" id="ov-div-behind" onchange="ovSet('dividerBehind',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
+          <div class="rr-group-body" id="grp-body-frame" style="display:none">
+            <div class="ct-card">
+              <div class="row2">
+                <div><label style="font-size:9px;color:var(--muted)">Color</label><input type="color" id="ctrl-framecolor" value="#383838" oninput="setVal('frameColor',this.value);applyFrameColor(currentTab)"></div>
+                <div><label style="font-size:9px;color:var(--muted)">Opacity</label><div style="display:flex;align-items:center;gap:4px;margin-top:3px"><input type="range" id="sl-frameop" min="0" max="100" value="22" style="flex:1;accent-color:var(--accent)" oninput="setVal('frameOp',+this.value/100);applyFrameColor(currentTab);document.getElementById('sv-frameop').textContent=this.value+'%'"><span class="sl-val" id="sv-frameop">22%</span></div></div>
               </div>
             </div>
-            <div class="ct-card" style="padding:0;overflow:hidden">
-              <div class="ov-accord-hdr" onclick="toggleOvAccord('textbox')"><div style="display:flex;align-items:center;gap:8px"><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" id="ov-textbox-on" onchange="ovSet('textbox',this.checked);renderOverlays()"><span class="tog-sl"></span></label><span class="ct-card-title" style="margin:0">Text Box</span></div><svg id="ov-chev-textbox" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-              <div class="ov-accord-body" id="ov-body-textbox" style="display:none">
-                <textarea id="ov-textbox-text" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;padding:6px 8px;resize:vertical;min-height:44px;outline:none;margin-bottom:6px" oninput="ovSet('textboxContent',this.value);renderOverlays()">Your text here</textarea>
-                <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px"><div style="flex:1"><label>Size</label><div style="display:flex;align-items:center;gap:4px;margin-top:2px"><input type="range" id="ov-tb-size" min="8" max="72" value="14" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('textboxSize',+this.value);document.getElementById('ov-tb-sizev').textContent=this.value+'px';renderOverlays()"><span class="sl-val" id="ov-tb-sizev">14px</span></div></div><div><label>Color</label><input type="color" id="ov-tb-color" value="#ffffff" oninput="ovSet('textboxColor',this.value);renderOverlays()"></div></div>
-                <label>Align</label><div class="btn-group" id="ov-tb-align-group" style="margin-bottom:6px"><button class="btn-opt on" data-val="left" onclick="ovBtnSet('ov-tb-align-group','textboxAlign',this);renderOverlays()">Left</button><button class="btn-opt" data-val="center" onclick="ovBtnSet('ov-tb-align-group','textboxAlign',this);renderOverlays()">Center</button><button class="btn-opt" data-val="right" onclick="ovBtnSet('ov-tb-align-group','textboxAlign',this);renderOverlays()">Right</button></div>
-                <label>Weight</label><div class="btn-group" id="ov-tb-weight-group" style="margin-bottom:6px"><button class="btn-opt on" data-val="400" onclick="ovBtnSet('ov-tb-weight-group','textboxWeight',this);renderOverlays()">Regular</button><button class="btn-opt" data-val="700" onclick="ovBtnSet('ov-tb-weight-group','textboxWeight',this);renderOverlays()">Bold</button><button class="btn-opt" data-val="900" onclick="ovBtnSet('ov-tb-weight-group','textboxWeight',this);renderOverlays()">Black</button></div>
-                <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
-                  <label style="display:block;margin-bottom:4px">Font</label>
-                  <div class="font-picker"><select id="fp-tb-input" onchange="applyGoogleFont('tb',this.value)"><option value="">Default</option><optgroup label="Sans Serif"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Montserrat</option><option>Poppins</option><option>Lato</option><option>Nunito</option><option>Raleway</option><option>Work Sans</option><option>DM Sans</option><option>Plus Jakarta Sans</option><option>Outfit</option><option>Space Grotesk</option><option>Urbanist</option><option>Manrope</option></optgroup><optgroup label="Display / Bold"><option>Bebas Neue</option><option>Barlow Condensed</option><option>Anton</option><option>Oswald</option><option>Black Han Sans</option><option>Fjalla One</option><option>Russo One</option><option>Righteous</option><option>Exo 2</option><option>Chakra Petch</option></optgroup><optgroup label="Serif"><option>Playfair Display</option><option>Merriweather</option><option>Lora</option><option>Cormorant Garamond</option><option>DM Serif Display</option><option>Libre Baskerville</option></optgroup><optgroup label="Mono"><option>JetBrains Mono</option><option>Space Mono</option><option>IBM Plex Mono</option><option>Fira Code</option></optgroup></select><button class="font-upload-btn" onclick="resetFont('tb')" title="Reset">↺</button></div>
-                  <div style="display:flex;gap:4px;margin-top:4px"><input type="file" id="fp-tb-file" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="applyCustomFont('tb',this)"><button class="font-upload-btn" style="flex:1;text-align:left" onclick="document.getElementById('fp-tb-file').click()">↑ Upload font</button></div>
-                  <div id="fp-tb-name" style="font-size:9px;color:var(--accent);margin-top:3px;display:none"></div>
-                </div>
-                <div class="toggle-row" style="margin-top:8px"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" id="ov-tb-behind" onchange="ovSet('textboxBehind',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
-              </div>
+          </div>
+        </div>
+
+        <div class="rr-group">
+          <div class="rr-group-hdr" onclick="toggleRRGroup('crop')">
+            <div><div class="rr-group-title">Screenshot Crop</div><div class="rr-group-sub">X &middot; Y &middot; Scale</div></div>
+            <svg class="rr-group-chev" id="grp-chev-crop" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="rr-group-body" id="grp-body-crop" style="display:none">
+            <div class="ct-card">
+              <div class="sl-row" style="margin-bottom:6px"><label>X</label><input type="range" id="sl-cropx" min="-200" max="200" value="0" oninput="setVal('cropX',+this.value);applyCrop(currentTab);document.getElementById('sv-cropx').textContent=this.value+'px'"><span class="sl-val" id="sv-cropx">0px</span></div>
+              <div class="sl-row" style="margin-bottom:6px"><label>Y</label><input type="range" id="sl-cropy" min="-300" max="300" value="0" oninput="setVal('cropY',+this.value);applyCrop(currentTab);document.getElementById('sv-cropy').textContent=this.value+'px'"><span class="sl-val" id="sv-cropy">0px</span></div>
+              <div class="sl-row" style="margin-bottom:6px"><label>Scale</label><input type="range" id="sl-crops" min="80" max="200" value="100" oninput="setVal('cropS',+this.value/100);applyCrop(currentTab);document.getElementById('sv-crops').textContent=this.value+'%'"><span class="sl-val" id="sv-crops">100%</span></div>
+              <button class="btn-opt" style="width:100%" onclick="resetCrop()">&#x21BA; Reset Crop</button>
             </div>
-            <div class="ct-card" style="padding:0;overflow:hidden">
-              <div class="ov-accord-hdr" onclick="toggleOvAccord('border')"><div style="display:flex;align-items:center;gap:8px"><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" id="ov-border-on" onchange="ovSet('border',this.checked);renderOverlays()"><span class="tog-sl"></span></label><span class="ct-card-title" style="margin:0">Asset Border</span></div><svg id="ov-chev-border" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-              <div class="ov-accord-body" id="ov-body-border" style="display:none">
-                <label>Color</label><input type="color" id="ov-border-color" value="#ffffff" style="margin-bottom:6px" oninput="ovSet('borderColor',this.value);renderOverlays()">
-                <label>Width</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-border-w" min="1" max="12" value="2" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('borderWidth',+this.value);document.getElementById('ov-border-wv').textContent=this.value+'px';renderOverlays()"><span class="sl-val" id="ov-border-wv">2px</span></div>
-                <label>Inset</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-border-inset" min="4" max="40" value="12" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('borderInset',+this.value);document.getElementById('ov-border-insetv').textContent=this.value+'px';renderOverlays()"><span class="sl-val" id="ov-border-insetv">12px</span></div>
-                <label>Radius</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-border-r" min="0" max="40" value="10" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('borderRadius',+this.value);document.getElementById('ov-border-rv').textContent=this.value+'px';renderOverlays()"><span class="sl-val" id="ov-border-rv">10px</span></div>
-                <div class="toggle-row"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" id="ov-border-behind" onchange="ovSet('borderBehind',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
-              </div>
-            </div>
-            <div class="ct-card" style="padding:0;overflow:hidden">
-              <div class="ov-accord-hdr" onclick="toggleOvAccord('push')"><div style="display:flex;align-items:center;gap:8px"><label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" id="ov-push-on" onchange="ovSet('push',this.checked);renderOverlays()"><span class="tog-sl"></span></label><span class="ct-card-title" style="margin:0">Push Notification</span></div><svg id="ov-chev-push" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-              <div class="ov-accord-body" id="ov-body-push" style="display:none">
-                <label>App icon</label>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div id="ov-push-icon-preview" style="width:36px;height:36px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('ov-push-icon-upload').click()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><input type="file" id="ov-push-icon-upload" accept="image/*" style="display:none" onchange="handlePushIconUpload(event)"><span style="font-size:10px;color:var(--muted)">Click to upload</span></div>
-                <label>App name</label><input type="text" class="ctrl-text" id="ov-push-app" value="YOUR APP" oninput="ovSet('pushApp',this.value);renderOverlays()" style="margin-bottom:6px">
-                <label>Title</label><input type="text" class="ctrl-text" id="ov-push-title" value="DON'T MISS OUT!" oninput="ovSet('pushTitle',this.value);renderOverlays()" style="margin-bottom:6px">
-                <label>Message</label>
-                <textarea id="ov-push-msg" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;padding:6px 8px;resize:vertical;min-height:44px;outline:none;margin-bottom:6px" oninput="ovSet('pushMsg',this.value);renderOverlays()">Head to the app store and download to access exclusive deals!</textarea>
-                <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
-                  <label style="display:block;margin-bottom:4px">Font</label>
-                  <div class="font-picker"><select id="fp-push-input" onchange="applyGoogleFont('push',this.value)"><option value="">Default</option><optgroup label="Sans Serif"><option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Montserrat</option><option>Poppins</option><option>Lato</option><option>Nunito</option><option>Raleway</option><option>Work Sans</option><option>DM Sans</option><option>Plus Jakarta Sans</option><option>Outfit</option><option>Space Grotesk</option><option>Urbanist</option><option>Manrope</option></optgroup><optgroup label="Display / Bold"><option>Bebas Neue</option><option>Barlow Condensed</option><option>Anton</option><option>Oswald</option><option>Black Han Sans</option><option>Fjalla One</option><option>Russo One</option><option>Righteous</option><option>Exo 2</option><option>Chakra Petch</option></optgroup><optgroup label="Serif"><option>Playfair Display</option><option>Merriweather</option><option>Lora</option><option>Cormorant Garamond</option><option>DM Serif Display</option><option>Libre Baskerville</option></optgroup><optgroup label="Mono"><option>JetBrains Mono</option><option>Space Mono</option><option>IBM Plex Mono</option><option>Fira Code</option></optgroup></select><button class="font-upload-btn" onclick="resetFont('push')" title="Reset">↺</button></div>
-                  <div style="display:flex;gap:4px;margin-top:4px;margin-bottom:6px"><input type="file" id="fp-push-file" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="applyCustomFont('push',this)"><button class="font-upload-btn" style="flex:1;text-align:left" onclick="document.getElementById('fp-push-file').click()">↑ Upload font</button></div>
-                  <div id="fp-push-name" style="font-size:9px;color:var(--accent);margin-bottom:4px;display:none"></div>
-                </div>
-                <div style="display:flex;gap:10px;margin-bottom:6px;margin-top:4px"><div><label>Title color</label><input type="color" id="ov-push-tcolor" value="#111111" oninput="ovSet('pushTitleColor',this.value);renderOverlays()"></div><div><label>Msg color</label><input type="color" id="ov-push-mcolor" value="#444444" oninput="ovSet('pushMsgColor',this.value);renderOverlays()"></div></div>
-                <label>Scale</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-push-scale" min="40" max="150" value="100" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('pushScale',+this.value);document.getElementById('ov-push-scalev').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-push-scalev">100%</span></div>
-                <label>Width %</label><div style="display:flex;align-items:center;gap:4px;margin-bottom:6px"><input type="range" id="ov-push-width" min="30" max="100" value="85" step="1" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('pushWidth',+this.value);document.getElementById('ov-push-widthv').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-push-widthv">85%</span></div>
-                <div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-end"><div><label>Background</label><input type="color" id="ov-push-bgcolor" value="#ffffff" oninput="ovSet('pushBgColor',this.value);renderOverlays()"></div><div style="flex:1"><label>Bg opacity</label><div style="display:flex;align-items:center;gap:4px;margin-top:2px"><input type="range" id="ov-push-bgop" min="0" max="100" value="100" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('pushBgOp',+this.value);document.getElementById('ov-push-bgopv').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-push-bgopv">100%</span></div></div></div>
-                <div class="toggle-row" style="margin-bottom:4px"><span class="toggle-label" style="font-size:10px">Show store badges</span><label class="toggle"><input type="checkbox" id="ov-push-badges" checked onchange="ovSet('pushBadges',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
-                <div class="toggle-row"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" id="ov-push-behind" onchange="ovSet('pushBehind',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
-              </div>
-            </div>
-            <div class="ct-card" style="padding:0;overflow:hidden">
-              <div class="ov-accord-hdr" onclick="toggleOvAccord('xscr')"><span class="ct-card-title" style="margin:0">Extra Screenshots</span><svg id="ov-chev-xscr" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div>
-              <div class="ov-accord-body" id="ov-body-xscr" style="display:none">
-                <p style="font-size:10px;color:var(--muted);margin-bottom:8px">Up to 3 draggable screenshot frames.</p>
-                <div id="ov-xscr-list"></div>
-                <button class="apply-all-btn" id="ov-xscr-add" onclick="addExtraScreen()" style="display:block;margin-top:4px">+ Add Screenshot</button>
+          </div>
+        </div>
+
+        <div class="rr-group">
+          <div class="rr-group-hdr" onclick="toggleRRGroup('shadow')">
+            <div><div class="rr-group-title">Drop Shadow</div><div class="rr-group-sub">Color &middot; Blur &middot; Offset</div></div>
+            <svg class="rr-group-chev" id="grp-chev-shadow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="rr-group-body" id="grp-body-shadow" style="display:none">
+            <div class="ct-card">
+              <div class="toggle-row" style="margin-bottom:8px"><span class="toggle-label">Enable Shadow</span><label class="toggle"><input type="checkbox" id="ctrl-phoneshadow" onchange="setVal('phoneShadow',this.checked);togglePhoneShadowUI(this.checked);applyPhoneShadow(currentTab)"><span class="tog-sl"></span></label></div>
+              <div id="phone-shadow-controls" style="opacity:0.35;pointer-events:none">
+                <div class="row2" style="margin-bottom:8px"><div><label>Color</label><input type="color" id="ctrl-pshcolor" value="#000000" oninput="setVal('phoneShadowColor',this.value);applyPhoneShadow(currentTab)"></div><div><label>Opacity</label><div style="display:flex;align-items:center;gap:4px;margin-top:4px"><input type="range" id="sl-pshop" min="0" max="100" value="45" style="flex:1;accent-color:var(--accent)" oninput="setVal('phoneShadowOp',+this.value/100);applyPhoneShadow(currentTab);document.getElementById('sv-pshop').textContent=this.value+'%'"><span class="sl-val" id="sv-pshop">45%</span></div></div></div>
+                <div class="sl-row" style="margin-bottom:6px"><label>Blur</label><input type="range" id="sl-pshblur" min="0" max="80" value="40" oninput="setVal('phoneShadowBlur',+this.value);applyPhoneShadow(currentTab);document.getElementById('sv-pshblur').textContent=this.value+'px'"><span class="sl-val" id="sv-pshblur">40px</span></div>
+                <div class="sl-row" style="margin-bottom:6px"><label>Offset X</label><input type="range" id="sl-pshx" min="-50" max="50" value="0" oninput="setVal('phoneShadowX',+this.value);applyPhoneShadow(currentTab);document.getElementById('sv-pshx').textContent=this.value+'px'"><span class="sl-val" id="sv-pshx">0px</span></div>
+                <div class="sl-row"><label>Offset Y</label><input type="range" id="sl-pshy" min="-50" max="50" value="20" oninput="setVal('phoneShadowY',+this.value);applyPhoneShadow(currentTab);document.getElementById('sv-pshy').textContent=this.value+'px'"><span class="sl-val" id="sv-pshy">20px</span></div>
               </div>
             </div>
           </div>
@@ -1242,6 +1265,14 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
       <div id="rr-bg"       style="display:none"></div>
       <div id="rr-elements" style="display:none"></div>
       <div id="rr-overlays" style="display:none"></div>
+      <div style="display:none">
+        <div id="grp-body-elements"></div><div id="grp-body-overlays"></div>
+        <svg id="grp-chev-overlays"></svg><svg id="grp-chev-elements"></svg>
+        <div id="ov-body-divider"></div><div id="ov-body-textbox"></div>
+        <div id="ov-body-border"></div><div id="ov-body-push"></div><div id="ov-body-xscr"></div>
+        <svg id="ov-chev-divider"></svg><svg id="ov-chev-textbox"></svg>
+        <svg id="ov-chev-border"></svg><svg id="ov-chev-push"></svg><svg id="ov-chev-xscr"></svg>
+      </div>
 
     </div><!-- /rr-body -->
   </div><!-- /right-rail -->
@@ -1494,7 +1525,7 @@ function loadPanelFromState(id) {
   document.getElementById('ctrl-bg2').value        = s.bg2;
   document.getElementById('ctrl-gradient').checked = s.useGrad;
   toggleBgGradient(s.useGrad);
-  document.getElementById('bg2-label').style.color = s.useGrad ? 'var(--muted)' : 'var(--border)';
+  
 
   // Note: bg-img controls live inside accordion — only update values, visibility
   // managed by handleBgImgUpload / clearBgImg
@@ -1587,7 +1618,7 @@ function setVal(key, value) {
   debouncedPushUndo(currentTab);
   state[currentTab][key] = value;
   if (key === 'useGrad') {
-    document.getElementById('bg2-label').style.color = value ? 'var(--muted)' : 'var(--border)';
+    
   }
 }
 
@@ -2086,7 +2117,7 @@ function applyBrandColor(target, hex) {
     ASSETS.forEach(id => { state[id].bg1 = hex; state[id].useGrad = false; applyAsset(id); });
     document.getElementById('ctrl-bg1').value = hex;
     document.getElementById('ctrl-gradient').checked = false;
-    document.getElementById('bg2-label').style.color = 'var(--border)';
+    
   } else {
     ASSETS.forEach(id => { state[id].hColor = hex; applyAsset(id); });
     document.getElementById('ctrl-hcolor').value = hex;
@@ -2224,6 +2255,13 @@ async function runCapture(clearFirst = false) {
   showCapProgress('');
   document.getElementById('lib-grid-container').style.display = 'block';
   renderLibGrid();
+  // Always auto-select the Home screenshot so all asset phone screens are pre-populated
+  const homeItem = library.find(l => l.label === 'Home');
+  if (homeItem) {
+    setActiveShot(homeItem.id);
+  } else if (library.length > 0) {
+    setActiveShot(library[0].id);
+  }
   updateZone4(library.length > 0);
 }
 
@@ -2336,7 +2374,7 @@ function switchRRTab(tab, btn) {
     const body = document.querySelector('.rr-body');
     if (body) body.scrollTop = 0;
   }
-  if (tab === 'layout') loadOvPanel(currentTab);
+  if (tab === 'layout' || tab === 'design') loadOvPanel(currentTab);
   updateUndoButtons();
   restoreFontLabels(currentTab);
 }
@@ -2822,7 +2860,86 @@ function toggleTypoAccord(id, btn) {
 // ═══════════════════════════════════════════════════
 function toggleBgGradient(on) {
   const r = document.getElementById('bg-color2-row');
-  if (r) r.style.display = on ? 'block' : 'none';
+  if (r) r.style.display = on ? 'flex' : 'none';
+}
+
+// ── Design tab: Copy / Overlays panel switcher ──
+function toggleIconPanel(name) {
+  ['copy','overlays'].forEach(p => {
+    const el  = document.getElementById('icon-panel-' + p);
+    const btn = document.getElementById('icon-btn-' + p);
+    if (el)  el.style.display = p === name ? 'block' : 'none';
+    if (btn) btn.classList.toggle('active', p === name);
+  });
+}
+
+// ── Overlays: sub-type icon switcher ──
+function toggleOvIcon(name) {
+  ['divider','textbox','border','push','media'].forEach(p => {
+    const el  = document.getElementById('ov-icon-panel-' + p);
+    const btn = document.getElementById('ov-icon-btn-' + p);
+    if (el)  el.style.display = p === name ? 'block' : 'none';
+    if (btn) btn.classList.toggle('active', p === name);
+  });
+  if (name === 'textbox') renderTbList();
+}
+
+// ── Multi-textbox management ──────────────────────────
+function defaultTb() {
+  return { content: 'Your text here', size: 14, color: '#ffffff', align: 'left', weight: '400', behind: false, x: 20, y: 40, font: null };
+}
+
+function addTextBox() {
+  const s = ovState[currentTab];
+  if (!s.textBoxes) s.textBoxes = [];
+  s.textBoxes.push(defaultTb());
+  renderTbList();
+  renderOverlays(currentTab);
+}
+
+function removeTb(i) {
+  const s = ovState[currentTab];
+  s.textBoxes.splice(i, 1);
+  renderTbList();
+  renderOverlays(currentTab);
+}
+
+function tbSet(i, key, val) {
+  const s = ovState[currentTab];
+  if (!s.textBoxes[i]) return;
+  s.textBoxes[i][key] = val;
+  renderOverlays(currentTab);
+}
+
+function renderTbList() {
+  const container = document.getElementById('tb-list');
+  if (!container) return;
+  const s = ovState[currentTab];
+  const boxes = s.textBoxes || [];
+  if (boxes.length === 0) {
+    container.innerHTML = '<p style="font-size:10px;color:var(--muted);text-align:center;padding:10px 0">No text boxes. Click "+ Add Text Box" below.</p>';
+    return;
+  }
+  container.innerHTML = boxes.map((tb, i) => `
+    <div class="ct-card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:600;color:var(--text)">Text Box ${i+1}</span>
+        <button onclick="removeTb(${i})" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;cursor:pointer;padding:2px 7px;font-size:10px">✕ Remove</button>
+      </div>
+      <textarea style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:11px;padding:6px 8px;resize:vertical;min-height:44px;outline:none;margin-bottom:6px" oninput="tbSet(${i},'content',this.value);renderOverlays()">${tb.content||'Your text here'}</textarea>
+      <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px">
+        <div style="flex:1"><label style="font-size:9px;color:var(--muted)">Size</label><div style="display:flex;align-items:center;gap:4px;margin-top:2px"><input type="range" min="8" max="72" value="${tb.size||14}" step="1" style="flex:1;accent-color:var(--accent)" oninput="tbSet(${i},'size',+this.value);this.nextElementSibling.textContent=this.value+'px'"><span class="sl-val">${tb.size||14}px</span></div></div>
+        <div><label style="font-size:9px;color:var(--muted)">Color</label><input type="color" value="${tb.color||'#ffffff'}" style="display:block;margin-top:2px;height:26px;width:36px;border-radius:5px;border:1px solid var(--border);cursor:pointer;padding:1px" oninput="tbSet(${i},'color',this.value)"></div>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:4px">
+        ${['left','center','right'].map(a=>`<button class="btn-opt${(tb.align||'left')===a?' on':''}" style="flex:1" onclick="tbSet(${i},'align','${a}');renderTbList()">${a.charAt(0).toUpperCase()+a.slice(1)}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:4px">
+        ${[['Regular','400'],['Bold','700'],['Black','900']].map(([l,w])=>`<button class="btn-opt${(tb.weight||'400')===w?' on':''}" style="flex:1;font-size:9px" onclick="tbSet(${i},'weight','${w}');renderTbList()">${l}</button>`).join('')}
+      </div>
+      <div class="toggle-row" style="margin:0"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" ${tb.behind?'checked':''} onchange="tbSet(${i},'behind',this.checked)"><span class="tog-sl"></span></label></div>
+    </div>
+  `).join('');
 }
 
 // ═══════════════════════════════════════════════════
@@ -2861,11 +2978,16 @@ function applyCrop(id) {
   const scale = s.cropS || 1;
   const x = s.cropX || 0;
   const y = s.cropY || 0;
-  img.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-  img.style.transformOrigin = 'center center';
+  // Use object-fit:none so the full native image height is visible and Y offset works correctly
   img.style.width  = '100%';
-  img.style.height = '100%';
-  img.style.objectFit = 'cover';
+  img.style.height = 'auto';
+  img.style.objectFit = 'none';
+  img.style.objectPosition = 'top left';
+  img.style.position = 'absolute';
+  img.style.top = '0';
+  img.style.left = '0';
+  img.style.transformOrigin = 'top center';
+  img.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
 }
 
 function resetCrop() {
@@ -3088,7 +3210,9 @@ function defaultOverlayState() {
     divider: false, dividerStyle: 'line-dot', dividerY: 28,
     dividerColor: '#ffffff', dividerOp: 40, dividerBehind: false,
     dividerPx: null, dividerPy: null, // dragged position (null = use Y%)
-    // Text box
+    // Text boxes (array - supports multiple)
+    textBoxes: [],
+    // Legacy single textbox (kept for backward compat, ignored in render)
     textbox: false, textboxContent: 'Your text here', textboxSize: 14,
     textboxColor: '#ffffff', textboxAlign: 'left', textboxWeight: '400',
     textboxBehind: false, textboxX: 20, textboxY: 20, textboxFont: null,
@@ -3181,6 +3305,8 @@ function loadOvPanel(id) {
   document.querySelectorAll('#ov-tb-weight-group .btn-opt').forEach(b => b.classList.toggle('on', b.dataset.val === s.textboxWeight));
   // extra screens list
   renderXscrList(id);
+  // text boxes list
+  renderTbList();
 }
 
 // Push icon upload
@@ -3357,15 +3483,16 @@ function renderOverlays(id) {
     makeOvDraggable(div, cv, (x, y) => { s.dividerPx = x; s.dividerPy = y; });
   }
 
-  // ── TEXT BOX ─────────────────────────────────────────
-  if (s.textbox) {
-    const tb = document.createElement('div');
-    tb.className = 'ov-textbox';
-    tb.style.cssText = `position:absolute;left:${s.textboxX}px;top:${s.textboxY}px;font-family:${s.textboxFont || "'Barlow', sans-serif"};font-size:${s.textboxSize}px;color:${s.textboxColor};font-weight:${s.textboxWeight};text-align:${s.textboxAlign};max-width:80%;white-space:pre-wrap;line-height:1.3;z-index:${s.textboxBehind ? OV_BEHIND : OV_FRONT};cursor:grab;user-select:none;`;
-    tb.textContent = s.textboxContent;
-    cv.appendChild(tb);
-    makeOvDraggable(tb, cv, (x, y) => { s.textboxX = x; s.textboxY = y; });
-  }
+  // ── TEXT BOXES (array) ───────────────────────────────
+  (s.textBoxes || []).forEach((tb, i) => {
+    const el = document.createElement('div');
+    el.className = 'ov-textbox';
+    el.dataset.tbIndex = i;
+    el.style.cssText = `position:absolute;left:${tb.x||20}px;top:${tb.y||20}px;font-family:${tb.font || "'Barlow', sans-serif"};font-size:${tb.size||14}px;color:${tb.color||'#ffffff'};font-weight:${tb.weight||'400'};text-align:${tb.align||'left'};max-width:80%;white-space:pre-wrap;line-height:1.3;z-index:${tb.behind ? OV_BEHIND : OV_FRONT};cursor:grab;user-select:none;`;
+    el.textContent = tb.content || 'Text';
+    cv.appendChild(el);
+    makeOvDraggable(el, cv, (x, y) => { s.textBoxes[i].x = x; s.textBoxes[i].y = y; });
+  });
 
   // ── BORDER ───────────────────────────────────────────
   if (s.border) {
