@@ -1,31 +1,29 @@
-// api/tapcart-proxy.js
-// Proxies requests to app.tapcart.com to avoid CORS issues in the browser.
-
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { appId } = req.query;
-  if (!appId) {
-    return res.status(400).json({ error: 'Missing appId' });
+  const serviceUrl = process.env.SCREENSHOT_SERVICE_URL;
+  if (!serviceUrl) {
+    return res.status(500).json({ error: 'SCREENSHOT_SERVICE_URL not configured' });
   }
 
   try {
-    const upstream = await fetch(`https://app.tapcart.com/v1/apps/${appId}`, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0',
-      },
+    const upstream = await fetch(`${serviceUrl}/screenshot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
     });
 
+    if (!upstream.ok) {
+      const text = await upstream.text();
+      return res.status(upstream.status).json({ error: text });
+    }
+
     const data = await upstream.json();
-    
-    // Forward the status code from Tapcart
-    res.status(upstream.status).json(data);
+    return res.status(200).json(data);
 
   } catch (err) {
-    console.error('[tapcart-proxy] error:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
-}
+};
