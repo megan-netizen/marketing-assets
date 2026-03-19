@@ -3449,6 +3449,8 @@ function addExtraScreen() {
     x: 20 + s.extraScreens.length * 20,
     y: 10 + s.extraScreens.length * 10,
     behind: false,
+    cropX: 0, cropY: 0, cropS: 1,
+    frameColor: '#383838', frameOp: 0.22,
   });
   renderXscrList(currentTab);
   renderOverlays();
@@ -3469,7 +3471,14 @@ function renderXscrList(id) {
   if (!list) return;
   const screens = ovState[id].extraScreens;
   list.innerHTML = screens.map((sc, i) => {
-    // Build library thumbnail grid if there are captured screenshots
+    // Ensure new fields have defaults for screens created before this update
+    const cropX = sc.cropX || 0;
+    const cropY = sc.cropY || 0;
+    const cropS = sc.cropS || 1;
+    const fCol  = sc.frameColor || '#383838';
+    const fOp   = sc.frameOp !== undefined ? sc.frameOp : 0.22;
+    const scaleDisp = Math.round(cropS * 100);
+
     const libThumbs = library.length ? `
       <div style="margin-bottom:6px">
         <div style="font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">From Library</div>
@@ -3498,21 +3507,74 @@ function renderXscrList(id) {
       ${libThumbs}
       <input type="file" id="xscr-upload-${i}" accept="image/*" style="display:none" onchange="handleXscrUpload(event,${i})">
       <div onclick="document.getElementById('xscr-upload-${i}').click()"
-        style="height:26px;background:var(--bg);border:1px dashed var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:6px;font-size:9px;color:var(--muted);gap:4px">
+        style="height:26px;background:var(--bg);border:1px dashed var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:8px;font-size:9px;color:var(--muted);gap:4px">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         ${uploadLabel}
       </div>
+
+      <!-- Frame size -->
       <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
-        <span style="font-size:10px;color:var(--muted);width:36px">Scale</span>
-        <input type="range" min="30" max="150" value="${sc.scale}" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovState['${id}'].extraScreens[${i}].scale=+this.value;renderOverlays()">
-        <span style="font-size:10px;color:var(--muted);width:30px">${sc.scale}%</span>
+        <span style="font-size:10px;color:var(--muted);min-width:46px">Size</span>
+        <input type="range" min="30" max="150" value="${sc.scale}" step="5" style="flex:1;accent-color:var(--accent)"
+          oninput="ovState['${id}'].extraScreens[${i}].scale=+this.value;this.nextElementSibling.textContent=this.value+'%';renderOverlays()">
+        <span style="font-size:10px;color:var(--muted);min-width:30px;text-align:right">${sc.scale}%</span>
       </div>
+
+      <!-- Crop X / Y / Scale -->
+      <div style="font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:6px 0 4px">Crop</div>
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+        <span style="font-size:10px;color:var(--muted);min-width:46px">X</span>
+        <input type="range" min="-200" max="200" value="${cropX}" step="1" style="flex:1;accent-color:var(--accent)"
+          oninput="ovState['${id}'].extraScreens[${i}].cropX=+this.value;this.nextElementSibling.textContent=this.value+'px';renderOverlays()">
+        <span style="font-size:10px;color:var(--muted);min-width:30px;text-align:right">${cropX}px</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+        <span style="font-size:10px;color:var(--muted);min-width:46px">Y</span>
+        <input type="range" min="-300" max="300" value="${cropY}" step="1" style="flex:1;accent-color:var(--accent)"
+          oninput="ovState['${id}'].extraScreens[${i}].cropY=+this.value;this.nextElementSibling.textContent=this.value+'px';renderOverlays()">
+        <span style="font-size:10px;color:var(--muted);min-width:30px;text-align:right">${cropY}px</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:6px">
+        <span style="font-size:10px;color:var(--muted);min-width:46px">Zoom</span>
+        <input type="range" min="80" max="200" value="${scaleDisp}" step="1" style="flex:1;accent-color:var(--accent)"
+          oninput="ovState['${id}'].extraScreens[${i}].cropS=+this.value/100;this.nextElementSibling.textContent=this.value+'%';renderOverlays()">
+        <span style="font-size:10px;color:var(--muted);min-width:30px;text-align:right">${scaleDisp}%</span>
+      </div>
+      <button onclick="xscrResetCrop(${i})" style="width:100%;padding:3px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'Barlow',sans-serif;font-size:9px;cursor:pointer;margin-bottom:8px;transition:border-color .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">↺ Reset Crop</button>
+
+      <!-- Frame color -->
+      <div style="font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Frame</div>
+      <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:8px">
+        <div style="flex:1">
+          <label style="font-size:9px;color:var(--muted);display:block;margin-bottom:2px">Color</label>
+          <input type="color" value="${fCol}"
+            style="width:100%;height:26px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;padding:2px"
+            oninput="ovState['${id}'].extraScreens[${i}].frameColor=this.value;renderOverlays()">
+        </div>
+        <div style="flex:2">
+          <label style="font-size:9px;color:var(--muted);display:block;margin-bottom:2px">Opacity</label>
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="range" min="0" max="100" value="${Math.round(fOp*100)}" step="1" style="flex:1;accent-color:var(--accent)"
+              oninput="ovState['${id}'].extraScreens[${i}].frameOp=+this.value/100;this.nextElementSibling.textContent=this.value+'%';renderOverlays()">
+            <span style="font-size:10px;color:var(--muted);min-width:30px;text-align:right">${Math.round(fOp*100)}%</span>
+          </div>
+        </div>
+      </div>
+
       <div class="toggle-row" style="margin-top:2px">
         <span class="toggle-label" style="font-size:10px">Behind device</span>
         <label class="toggle"><input type="checkbox" ${sc.behind ? 'checked' : ''} onchange="ovState['${id}'].extraScreens[${i}].behind=this.checked;renderOverlays()"><span class="tog-sl"></span></label>
       </div>
     </div>`;
   }).join('');
+}
+
+function xscrResetCrop(idx) {
+  const sc = ovState[currentTab].extraScreens[idx];
+  if (!sc) return;
+  sc.cropX = 0; sc.cropY = 0; sc.cropS = 1;
+  renderXscrList(currentTab);
+  renderOverlays();
 }
 
 function xscrPickFromLib(screenIdx, libId) {
@@ -3698,21 +3760,37 @@ function renderOverlays(id) {
     // Scale the same fixed values the real phone uses (22px radius, 3px border, 8px notch)
     const frameR  = Math.max(8,  Math.round(22  * sc));
     const screenR = Math.max(6,  Math.round(19  * sc));
-    const border  = 3; // always 3px to match real phone-frame exactly
+    const border  = 3;
     const notchW  = Math.max(12, Math.round(42  * sc));
     const notchH  = Math.max(3,  Math.round(8   * sc));
     const inset   = Math.max(2,  Math.round(3   * sc));
     const emptyFontSize = Math.max(8, Math.round(9 * sc));
+
+    // Frame color (with opacity)
+    const fCol = xsc.frameColor || '#383838';
+    const fOp  = xsc.frameOp !== undefined ? xsc.frameOp : 0.22;
+    const fr   = parseInt(fCol.slice(1,3),16), fg = parseInt(fCol.slice(3,5),16), fb = parseInt(fCol.slice(5,7),16);
+    const frameBorder = `rgba(${fr},${fg},${fb},${fOp})`;
+    const frameBg     = fCol;
+
+    // Crop: applied as transform on the img, consistent with the main applyCrop approach
+    const cropX = xsc.cropX || 0;
+    const cropY = xsc.cropY || 0;
+    const cropS = xsc.cropS || 1;
+    const cropTransform = (cropX !== 0 || cropY !== 0 || cropS !== 1)
+      ? `translate(${cropX}px, ${cropY}px) scale(${cropS})`
+      : '';
+
     const scrHtml = xsc.src
-      ? `<img src="${xsc.src}" style="width:100%;height:100%;object-fit:cover;display:block">`
+      ? `<img src="${xsc.src}" style="width:100%;height:100%;object-fit:cover;object-position:top center;position:absolute;inset:0;transform-origin:top center;transform:${cropTransform};display:block">`
       : `<div class="phone-ph" style="font-size:${emptyFontSize}px"><span style="font-size:${Math.round(15*sc)}px">📱</span>Upload screenshot</div>`;
+
     const el = document.createElement('div');
     el.className = 'ov-xscr';
     el.style.cssText = `position:absolute;left:${xsc.x}px;top:${xsc.y}px;width:${pw}px;height:${ph}px;z-index:${xsc.behind ? OV_BEHIND : OV_FRONT};cursor:grab;user-select:none;`;
-    // Mirror .phone-frame and .phone-notch and .phone-screen exactly
     el.innerHTML = `
       <div style="position:relative;width:${pw}px;height:${ph}px">
-        <div style="position:absolute;inset:0;border-radius:${frameR}px;border:${border}px solid rgba(255,255,255,0.22);background:#111;box-shadow:0 14px 44px rgba(0,0,0,0.55);overflow:hidden">
+        <div style="position:absolute;inset:0;border-radius:${frameR}px;border:${border}px solid ${frameBorder};background:${frameBg};box-shadow:0 14px 44px rgba(0,0,0,0.55);overflow:hidden">
           <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:${notchW}px;height:${notchH}px;background:#000;border-radius:0 0 ${Math.round(notchH*0.75)}px ${Math.round(notchH*0.75)}px;z-index:10"></div>
           <div class="xscr-screen" data-id="${id}" data-idx="${i}" style="position:absolute;inset:${inset}px;border-radius:${screenR}px;overflow:hidden;background:#1a1a1a;cursor:pointer">${scrHtml}</div>
         </div>
