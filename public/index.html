@@ -1118,6 +1118,10 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               Media
             </button>
+            <button class="rr-icon-btn" id="ov-icon-btn-screens" onclick="toggleOvIcon('screens')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="9" height="17" rx="1.5"/><rect x="2" y="5" width="7" height="13" rx="1" opacity="0.45"/></svg>
+              Screens
+            </button>
           </div>
 
           <!-- Divider panel -->
@@ -1204,14 +1208,11 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
             <button class="apply-all-btn" id="elem-apply-all-btn" style="display:none" onclick="applyElementsToAll()">Apply elements to all assets</button>
           </div>
 
-          <!-- Extra Screenshots -->
-          <div style="margin-top:8px">
-            <div class="adv-toggle" onclick="toggleAdv('xscradv')" style="font-size:9px">Extra Screenshots <svg id="adv-chev-xscradv" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:middle"><path d="M6 9l6 6 6-6"/></svg></div>
-            <div id="adv-xscradv" style="display:none;margin-top:8px">
-              <p style="font-size:10px;color:var(--muted);margin-bottom:8px">Up to 3 draggable screenshot frames.</p>
-              <div id="ov-xscr-list"></div>
-              <button class="apply-all-btn" id="ov-xscr-add" onclick="addExtraScreen()" style="display:block;margin-top:4px">+ Add Screenshot</button>
-            </div>
+          <!-- Extra Screens panel — promoted to first-class icon panel -->
+          <div id="ov-icon-panel-screens" style="display:none">
+            <p style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5">Add up to 3 draggable phone frames. Drag to reposition on the canvas.</p>
+            <div id="ov-xscr-list"></div>
+            <button class="apply-all-btn" id="ov-xscr-add" onclick="addExtraScreen()" style="display:block;margin-top:4px">+ Add Screen</button>
           </div>
 
         </div><!-- /icon-panel-overlays -->
@@ -2009,6 +2010,9 @@ function renderLibGrid() {
   if (!library.length) {
     container.innerHTML = '<div class="lib-empty">No screenshots yet.<br>Load an App ID or upload to get started.</div>';
     updateZone4(false);
+    // Refresh extra screens panel if open so it reflects empty library
+    const screensPanel = document.getElementById('ov-icon-panel-screens');
+    if (screensPanel && screensPanel.style.display !== 'none') renderXscrList(currentTab);
     return;
   }
   updateZone4(true);
@@ -2018,6 +2022,9 @@ function renderLibGrid() {
       <div class="lib-label">${item.label}</div>
       <div class="lib-del" onclick="event.stopPropagation();deleteLibItem(${item.id})">✕</div>
     </div>`).join('')}</div>`;
+  // Keep extra screens panel in sync when library changes
+  const screensPanel = document.getElementById('ov-icon-panel-screens');
+  if (screensPanel && screensPanel.style.display !== 'none') renderXscrList(currentTab);
 }
 
 function setActiveShot(id) {
@@ -2976,13 +2983,14 @@ function toggleIconPanel(name) {
 
 // ── Overlays: sub-type icon switcher ──
 function toggleOvIcon(name) {
-  ['divider','textbox','border','push','media'].forEach(p => {
+  ['divider','textbox','border','push','media','screens'].forEach(p => {
     const el  = document.getElementById('ov-icon-panel-' + p);
     const btn = document.getElementById('ov-icon-btn-' + p);
     if (el)  el.style.display = p === name ? 'block' : 'none';
     if (btn) btn.classList.toggle('active', p === name);
   });
   if (name === 'textbox') renderTbList();
+  if (name === 'screens') renderXscrList(currentTab);
 }
 
 // ── Multi-textbox management ──────────────────────────
@@ -3460,15 +3468,40 @@ function renderXscrList(id) {
   const list = document.getElementById('ov-xscr-list');
   if (!list) return;
   const screens = ovState[id].extraScreens;
-  list.innerHTML = screens.map((sc, i) => `
+  list.innerHTML = screens.map((sc, i) => {
+    // Build library thumbnail grid if there are captured screenshots
+    const libThumbs = library.length ? `
+      <div style="margin-bottom:6px">
+        <div style="font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">From Library</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">
+          ${library.map(item => `
+            <div onclick="xscrPickFromLib(${i},'${item.id}')"
+              style="aspect-ratio:9/19;border-radius:4px;overflow:hidden;cursor:pointer;border:2px solid ${sc.src===item.dataUrl?'var(--accent)':'var(--border)'};transition:border-color .15s;background:var(--surface2)">
+              <img src="${item.dataUrl}" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block">
+            </div>`).join('')}
+        </div>
+      </div>` : '';
+
+    const uploadLabel = sc.src
+      ? '&#10003; Loaded — upload to replace'
+      : library.length ? '+ Upload from device' : 'Click to upload screenshot';
+
+    return `
     <div style="background:var(--surface2);border-radius:6px;padding:8px;margin-bottom:6px;border:1px solid var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:11px;font-weight:700;color:var(--text)">Screen ${i+1}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${sc.src ? `<div style="width:20px;height:20px;border-radius:3px;overflow:hidden;flex-shrink:0"><img src="${sc.src}" style="width:100%;height:100%;object-fit:cover;display:block"></div>` : ''}
+          <span style="font-size:11px;font-weight:700;color:var(--text)">Screen ${i+1}</span>
+        </div>
         <button onclick="removeExtraScreen(${i})" style="background:none;border:none;color:#e55;cursor:pointer;font-size:12px;padding:0">✕</button>
       </div>
+      ${libThumbs}
       <input type="file" id="xscr-upload-${i}" accept="image/*" style="display:none" onchange="handleXscrUpload(event,${i})">
-      <div onclick="document.getElementById('xscr-upload-${i}').click()" style="height:32px;background:var(--bg);border:1px dashed var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:6px;font-size:10px;color:var(--muted)">
-        ${sc.src ? '&#10003; Image loaded — click to replace' : 'Click to upload screenshot'}</div>
+      <div onclick="document.getElementById('xscr-upload-${i}').click()"
+        style="height:26px;background:var(--bg);border:1px dashed var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:6px;font-size:9px;color:var(--muted);gap:4px">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        ${uploadLabel}
+      </div>
       <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
         <span style="font-size:10px;color:var(--muted);width:36px">Scale</span>
         <input type="range" min="30" max="150" value="${sc.scale}" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovState['${id}'].extraScreens[${i}].scale=+this.value;renderOverlays()">
@@ -3478,8 +3511,16 @@ function renderXscrList(id) {
         <span class="toggle-label" style="font-size:10px">Behind device</span>
         <label class="toggle"><input type="checkbox" ${sc.behind ? 'checked' : ''} onchange="ovState['${id}'].extraScreens[${i}].behind=this.checked;renderOverlays()"><span class="tog-sl"></span></label>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+
+function xscrPickFromLib(screenIdx, libId) {
+  const item = library.find(l => String(l.id) === String(libId));
+  if (!item) return;
+  ovState[currentTab].extraScreens[screenIdx].src = item.dataUrl;
+  renderXscrList(currentTab);
+  renderOverlays();
 }
 
 function handleXscrUpload(e, idx) {
