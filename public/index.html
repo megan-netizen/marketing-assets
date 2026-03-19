@@ -2251,7 +2251,6 @@ async function runCapture(clearFirst = false) {
   if (!appLinks) return;
   if (clearFirst) { library = []; libCounter = 0; activeShotSrc = null; phoneSrc = null; }
   capturing = true;
-  document.getElementById('lib-grid-container').style.display = 'none';
 
   const slots = [
     { url: appLinks.home,        label: 'Home',        waitFor: 5000, scroll: true },
@@ -2261,12 +2260,17 @@ async function runCapture(clearFirst = false) {
     { url: appLinks.account,     label: 'Account',     waitFor: 4000, scroll: true },
   ].filter(s => s.url);
 
-  let done = 0;
-  showCapProgress(`Capturing… 0 of ${slots.length}`);
+  // Show skeleton placeholders for all expected slots upfront
+  const capContainer = document.getElementById('lib-capturing');
+  const gridContainer = document.getElementById('lib-grid-container');
+  if (capContainer) capContainer.style.display = 'block';
 
-  await Promise.all(slots.map(async slot => {
+  // Capture sequentially — each screenshot pops into the grid as it completes
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    showCapProgress(`Capturing ${slot.label}… (${i + 1} of ${slots.length})`);
     try {
-      const res  = await fetch(SCREENSHOT_PROXY, {
+      const res = await fetch(SCREENSHOT_PROXY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: slot.url, waitFor: slot.waitFor, scrollAndBack: slot.scroll }),
@@ -2274,18 +2278,23 @@ async function runCapture(clearFirst = false) {
       const data = await res.json();
       if (data.ok && data.image) {
         addToLib(data.image, slot.label);
+        // Show the grid and render after each successful capture
+        if (capContainer) capContainer.style.display = 'none';
+        if (gridContainer) gridContainer.style.display = 'block';
+        renderLibGrid();
+        // Auto-select first screenshot that comes in
         if (!activeShotSrc) setActiveShot(libCounter);
       }
     } catch(e) { console.warn('[Capture]', slot.label, e); }
-    done++;
-    showCapProgress(`Capturing… ${done} of ${slots.length}`);
-  }));
+  }
 
   capturing = false;
   showCapProgress('');
-  document.getElementById('lib-grid-container').style.display = 'block';
+  if (capContainer) capContainer.style.display = 'none';
+  if (gridContainer) gridContainer.style.display = 'block';
   renderLibGrid();
-  // Always auto-select the Home screenshot so all asset phone screens are pre-populated
+
+  // Always end on Home so all assets are pre-populated with the best screenshot
   const homeItem = library.find(l => l.label === 'Home');
   if (homeItem) {
     setActiveShot(homeItem.id);
@@ -3008,28 +3017,20 @@ function applyCrop(id) {
   const scale = s.cropS || 1;
   const x = s.cropX || 0;
   const y = s.cropY || 0;
-  // Use object-fit:cover by default for accurate preview; switch to none only when crop is active
-  const hasCrop = x !== 0 || y !== 0 || scale !== 1;
-  if (hasCrop) {
-    img.style.width  = '100%';
-    img.style.height = 'auto';
-    img.style.objectFit = 'none';
-    img.style.objectPosition = 'top left';
-    img.style.position = 'absolute';
-    img.style.top = '0';
-    img.style.left = '0';
-    img.style.transformOrigin = 'top center';
-    img.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-  } else {
-    img.style.width  = '100%';
-    img.style.height = '100%';
-    img.style.objectFit = 'cover';
-    img.style.objectPosition = 'top center';
-    img.style.position = 'absolute';
-    img.style.top = '0';
-    img.style.left = '0';
-    img.style.transform = '';
-  }
+  // Always use object-fit:cover so the image fills the frame at natural aspect ratio.
+  // Crop offsets and scale are applied purely via transform — no sizing mode change.
+  // This keeps the preview accurate and consistent with the export.
+  img.style.width  = '100%';
+  img.style.height = '100%';
+  img.style.objectFit = 'cover';
+  img.style.objectPosition = 'top center';
+  img.style.position = 'absolute';
+  img.style.top = '0';
+  img.style.left = '0';
+  img.style.transformOrigin = 'top center';
+  img.style.transform = (x !== 0 || y !== 0 || scale !== 1)
+    ? `translate(${x}px, ${y}px) scale(${scale})`
+    : '';
 }
 
 function resetCrop() {
