@@ -557,7 +557,36 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
         </div>
         <div style="display:flex;gap:4px;margin-top:8px">
           <button class="capture-btn" style="flex:1;font-size:9px;padding:5px 4px" onclick="runCapture(true)">↺ Recapture All</button>
-          <button class="capture-btn" style="flex:1;font-size:9px;padding:5px 4px;background:var(--surface2);color:var(--accent);border:1px solid rgba(232,255,0,0.4)" onclick="openShopifyCapture()">🛍 Collection</button>
+        </div>
+        <!-- Shopify collection/product selectors — shown when Shopify creds available -->
+        <div id="shp-selectors" style="display:none;margin-top:8px">
+          <div style="margin-bottom:5px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+              <span style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Collection (PLP)</span>
+              <span id="shp-coll-searching" style="font-size:8px;color:var(--accent);display:none">Searching…</span>
+            </div>
+            <input type="text" id="shp-coll-q" placeholder="Search collections…"
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Barlow',sans-serif;font-size:10px;padding:4px 7px;outline:none;transition:border-color .2s;box-sizing:border-box;margin-bottom:3px"
+              oninput="_shpOnCollQ(this.value)" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            <select id="shp-coll-sel" size="1"
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Barlow',sans-serif;font-size:10px;padding:3px 6px;outline:none;cursor:pointer;display:none"
+              onchange="_shpSelColl(this.value)">
+            </select>
+          </div>
+          <div style="margin-bottom:6px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+              <span style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Product (PDP)</span>
+              <span id="shp-prod-searching" style="font-size:8px;color:var(--accent);display:none">Searching…</span>
+            </div>
+            <input type="text" id="shp-prod-q" placeholder="Search products…"
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Barlow',sans-serif;font-size:10px;padding:4px 7px;outline:none;transition:border-color .2s;box-sizing:border-box;margin-bottom:3px"
+              oninput="_shpOnProdQ(this.value)" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            <select id="shp-prod-sel" size="1"
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Barlow',sans-serif;font-size:10px;padding:3px 6px;outline:none;cursor:pointer;display:none"
+              onchange="_shpSelProd(this.value)">
+            </select>
+          </div>
+          <button class="capture-btn" id="shp-recapture-btn" style="width:100%;font-size:9px;padding:5px 4px;background:var(--surface2);color:var(--accent);border:1px solid rgba(232,255,0,0.4)" onclick="_shpRecapture()">📸 Recapture PLP & PDP</button>
         </div>
       </div>
 
@@ -1446,6 +1475,11 @@ let phoneSrc = null;
 let appLinks = null;
 let appId = '';
 let appName = '';
+let _shpCreds = null;         // { uri, token } from Tapcart config
+let _shpSelCollHandle = '';   // currently selected collection handle
+let _shpSelProdId = '';       // currently selected product numeric ID
+const _shpCollTimer = { t: null };
+const _shpProdTimer = { t: null };
 let library = []; // [{id, label, dataUrl}]
 let libCounter = 0;
 let capturing = false;
@@ -2236,6 +2270,18 @@ async function fetchAndCapture() {
     document.getElementById('loaded-id').textContent        = appId;
     updateZone4(false);
 
+    // Store shopify credentials from Tapcart config for collection/product selectors
+    if (shopify?.shopifyApiKey && shopify?.storefrontApiURI) {
+      _shpCreds = { uri: shopify.storefrontApiURI, token: shopify.shopifyApiKey };
+      document.getElementById('shp-selectors').style.display = 'block';
+      // Load collections and products in background (don't block capture)
+      _shpLoadCollections('');
+      _shpLoadProducts('');
+    } else {
+      _shpCreds = null;
+      document.getElementById('shp-selectors').style.display = 'none';
+    }
+
     // Start capture
     await runCapture(true);
 
@@ -2252,11 +2298,19 @@ async function runCapture(clearFirst = false) {
   if (clearFirst) { library = []; libCounter = 0; activeShotSrc = null; phoneSrc = null; }
   capturing = true;
 
+  // Build PLP/PDP URLs using selected collection/product (like App Listing Studio)
+  const plpUrl = appLinks.plp && _shpSelCollHandle
+    ? `${appLinks.plp}?collectionHandle=${_shpSelCollHandle}`
+    : appLinks.plp;
+  const pdpUrl = appLinks.pdp && _shpSelProdId
+    ? `${appLinks.pdp}?productId=${_shpSelProdId}`
+    : appLinks.pdp;
+
   const slots = [
     { url: appLinks.home,        label: 'Home',        waitFor: 5000, scroll: true },
     { url: appLinks.collections, label: 'Collections', waitFor: 4000, scroll: true },
-    { url: appLinks.plp,         label: 'PLP',         waitFor: 5000, scroll: true },
-    { url: appLinks.pdp,         label: 'PDP',         waitFor: 4000, scroll: true },
+    { url: plpUrl,               label: 'PLP',         waitFor: 5000, scroll: true },
+    { url: pdpUrl,               label: 'PDP',         waitFor: 4000, scroll: true },
     { url: appLinks.account,     label: 'Account',     waitFor: 4000, scroll: true },
   ].filter(s => s.url);
 
@@ -2342,8 +2396,16 @@ async function runCapturePLPPDP() {
 
 function clearApp() {
   appLinks = null; appId = ''; appName = '';
+  _shpCreds = null; _shpSelCollHandle = ''; _shpSelProdId = '';
   document.getElementById('capture-idle').style.display   = 'block';
   document.getElementById('capture-loaded').style.display = 'none';
+  document.getElementById('shp-selectors').style.display  = 'none';
+  document.getElementById('shp-coll-q').value = '';
+  document.getElementById('shp-prod-q').value = '';
+  document.getElementById('shp-coll-sel').innerHTML = '';
+  document.getElementById('shp-prod-sel').innerHTML = '';
+  document.getElementById('shp-coll-sel').style.display = 'none';
+  document.getElementById('shp-prod-sel').style.display = 'none';
   document.getElementById('app-id-input').value   = '';
   document.getElementById('app-name-input').value = '';
   document.getElementById('cap-btn').disabled = false;
@@ -4248,328 +4310,129 @@ initRightRail();
 
 // Load the panel for the default tab
 loadPanelFromState('email');
-</script>
 
+// ═══════════════════════════════════════════════════
+// SHOPIFY COLLECTION / PRODUCT SELECTORS
+// Credentials come from Tapcart app config — no manual entry needed
+// ═══════════════════════════════════════════════════
 
-<!-- ═══ SHOPIFY COLLECTION CAPTURE ═══ -->
-<style>
-#shp-modal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);overflow-y:auto}
-.shp-inner{max-width:500px;margin:40px auto;padding:0 16px 60px}
-.shp-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.shp-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
-.shp-hdr-title{font-size:14px;font-weight:700;color:var(--text)}
-.shp-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:0 4px;line-height:1}
-.shp-close:hover{color:var(--text)}
-.shp-body{padding:20px}
-.shp-step{display:none}
-.shp-step.on{display:block}
-.shp-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block}
-.shp-inp{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Barlow',sans-serif;font-size:12px;padding:8px 10px;outline:none;transition:border-color .2s;box-sizing:border-box;margin-bottom:10px}
-.shp-inp:focus{border-color:var(--accent)}
-.shp-inp::placeholder{color:#555}
-.shp-hint{font-size:9px;color:#555;line-height:1.6;margin-top:-4px;margin-bottom:12px}
-.shp-btns{display:flex;gap:8px;margin-top:14px}
-.shp-btn{flex:1;padding:9px;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-weight:700;font-size:11px;letter-spacing:.5px;cursor:pointer;transition:opacity .2s;text-transform:uppercase}
-.shp-btn.pri{background:var(--accent);color:#000}
-.shp-btn.sec{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-.shp-btn:hover{opacity:.85}
-.shp-btn:disabled{opacity:.35;cursor:not-allowed}
-.shp-back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;font-family:'Barlow',sans-serif;font-weight:700;display:inline-flex;align-items:center;gap:4px;margin-bottom:14px;padding:0;transition:color .15s}
-.shp-back:hover{color:var(--text)}
-.shp-ttl{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
-.shp-sub{font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.5}
-.shp-search{display:flex;gap:6px;margin-bottom:8px}
-.shp-search .shp-inp{margin-bottom:0}
-.shp-list{max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px}
-.shp-empty{font-size:11px;color:#555;text-align:center;padding:24px;line-height:1.6}
-.shp-row{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s;user-select:none}
-.shp-row:last-child{border-bottom:none}
-.shp-row:hover{background:rgba(255,255,255,0.04)}
-.shp-row.sel{background:rgba(232,255,0,0.08)}
-.shp-thumb{width:38px;height:38px;border-radius:6px;object-fit:cover;flex-shrink:0}
-.shp-thumb-ph{width:38px;height:38px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
-.shp-row-info{flex:1;min-width:0}
-.shp-row-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shp-row-sub{font-size:9px;color:var(--muted);margin-top:1px}
-.shp-check{width:16px;height:16px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.shp-row.sel .shp-check{background:var(--accent);border-color:var(--accent)}
-.shp-row.sel .shp-check::after{content:'✓';font-size:9px;font-weight:900;color:#000}
-.shp-status{font-size:10px;font-weight:700;text-align:center;padding:8px 0 2px;display:none;color:var(--accent)}
-.shp-status.on{display:block}
-.shp-status.err{color:#e05555}
-.shp-preview{background:rgba(232,255,0,0.06);border:1px solid rgba(232,255,0,0.2);border-radius:8px;padding:10px 14px;margin-bottom:14px}
-.shp-preview-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:10px}
-.shp-preview-row:last-child{margin-bottom:0}
-.shp-badge{background:rgba(232,255,0,0.18);color:var(--accent);font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.5px;flex-shrink:0;margin-top:1px}
-.shp-preview-val{color:var(--text);font-weight:600;word-break:break-all}
-.shp-preview-url{color:var(--muted);font-size:8px;font-weight:400;font-family:monospace;word-break:break-all;margin-top:2px}
-</style>
-
-<div id="shp-modal">
- <div class="shp-inner">
-  <div class="shp-box">
-   <div class="shp-hdr">
-    <div class="shp-hdr-title">🛍 Shopify Collection Capture</div>
-    <button class="shp-close" onclick="shpClose()">✕</button>
-   </div>
-   <div class="shp-body">
-
-    <!-- Step 1: Credentials -->
-    <div class="shp-step on" id="shp-s1">
-     <div class="shp-ttl">Connect to Shopify</div>
-     <div class="shp-sub">Enter your store credentials to browse collections and products. Your token is never stored.</div>
-     <span class="shp-lbl">Store Domain</span>
-     <input class="shp-inp" id="shp-domain" placeholder="your-store.myshopify.com" onkeydown="if(event.key==='Enter')shpConnect()">
-     <span class="shp-lbl">Storefront API Token</span>
-     <input class="shp-inp" id="shp-token" type="password" placeholder="shpat_..." onkeydown="if(event.key==='Enter')shpConnect()">
-     <div class="shp-hint">In Shopify Admin → Apps → Develop apps → Storefront API — needs <em>read_product_listings</em> access.</div>
-     <div class="shp-status" id="shp-st1"></div>
-     <div class="shp-btns">
-      <button class="shp-btn sec" onclick="shpClose()">Cancel</button>
-      <button class="shp-btn pri" id="shp-connect-btn" onclick="shpConnect()">Connect →</button>
-     </div>
-    </div>
-
-    <!-- Step 2: Collections -->
-    <div class="shp-step" id="shp-s2">
-     <button class="shp-back" onclick="shpStep(1)">← Back</button>
-     <div class="shp-ttl">Select a Collection</div>
-     <div class="shp-sub">Choose which collection to capture (PLP).</div>
-     <div class="shp-search">
-      <input class="shp-inp" id="shp-csearch" placeholder="Search collections…" oninput="shpFilterC(this.value)">
-     </div>
-     <div class="shp-list" id="shp-clist"><div class="shp-empty">Loading…</div></div>
-     <div class="shp-status" id="shp-st2"></div>
-     <div class="shp-btns">
-      <button class="shp-btn sec" onclick="shpStep(1)">← Back</button>
-      <button class="shp-btn pri" id="shp-c-next" disabled onclick="shpStep(3)">Choose Product →</button>
-     </div>
-    </div>
-
-    <!-- Step 3: Products -->
-    <div class="shp-step" id="shp-s3">
-     <button class="shp-back" onclick="shpStep(2)">← Back</button>
-     <div class="shp-ttl">Select a Product</div>
-     <div class="shp-sub">Choose which product to capture (PDP).</div>
-     <div class="shp-search">
-      <input class="shp-inp" id="shp-psearch" placeholder="Search products…" oninput="shpFilterP(this.value)">
-     </div>
-     <div class="shp-list" id="shp-plist"><div class="shp-empty">Loading…</div></div>
-     <div class="shp-status" id="shp-st3"></div>
-     <div class="shp-btns">
-      <button class="shp-btn sec" onclick="shpStep(2)">← Back</button>
-      <button class="shp-btn pri" id="shp-p-next" disabled onclick="shpStep(4)">Review →</button>
-     </div>
-    </div>
-
-    <!-- Step 4: Confirm -->
-    <div class="shp-step" id="shp-s4">
-     <button class="shp-back" onclick="shpStep(3)">← Back</button>
-     <div class="shp-ttl">Ready to Capture</div>
-     <div class="shp-sub">These screenshots will be added to your library.</div>
-     <div class="shp-preview" id="shp-preview"></div>
-     <div class="shp-status" id="shp-st4"></div>
-     <div class="shp-btns">
-      <button class="shp-btn sec" onclick="shpStep(3)">← Back</button>
-      <button class="shp-btn pri" id="shp-cap-btn" onclick="shpCapture()">📸 Capture Now</button>
-     </div>
-    </div>
-
-   </div>
-  </div>
- </div>
-</div>
-
-<script>
-// ── Shopify Capture State ──
-const _shp = {
-  domain:'', token:'',
-  colls:[], collsF:[], selColl:null,
-  prods:[], prodsF:[], selProd:null,
-};
-
-function openShopifyCapture() {
-  document.getElementById('shp-modal').style.display = 'block';
-  shpStep(1);
-}
-function shpClose() { document.getElementById('shp-modal').style.display = 'none'; }
-document.getElementById('shp-modal').addEventListener('click', e => { if (e.target.id==='shp-modal') shpClose(); });
-
-function shpStep(n) {
-  document.querySelectorAll('.shp-step').forEach(el => el.classList.remove('on'));
-  document.getElementById('shp-s'+n).classList.add('on');
-  if (n===3 && _shp.selColl) _shpLoadProducts();
-  if (n===4) _shpBuildPreview();
-}
-
-function _shpStatus(n, msg, isErr) {
-  const el = document.getElementById('shp-st'+n);
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'shp-status' + (msg ? ' on' : '') + (isErr ? ' err' : '');
-}
-
-// ── Step 1: Connect ──
-async function shpConnect() {
-  const domain = document.getElementById('shp-domain').value.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const token  = document.getElementById('shp-token').value.trim();
-  if (!domain || !token) { _shpStatus(1,'Please fill in both fields.',true); return; }
-  _shp.domain = domain; _shp.token = token;
-  const btn = document.getElementById('shp-connect-btn');
-  btn.disabled = true; btn.textContent = 'Connecting…'; _shpStatus(1,'',false);
-  try {
-    const data = await _shpGQL(`{ collections(first:100){ edges{ node{ id title handle image{ url } } } } }`);
-    const edges = data?.data?.collections?.edges || [];
-    if (!edges.length) throw new Error('No collections found — check token permissions.');
-    _shp.colls = edges.map(e=>({ id:e.node.id, title:e.node.title, handle:e.node.handle, img:e.node.image?.url||null }));
-    _shp.collsF = [..._shp.colls];
-    _shpRenderColls();
-    shpStep(2);
-  } catch(err) {
-    _shpStatus(1, '❌ ' + (err.message||'Connection failed'), true);
-  } finally { btn.disabled=false; btn.textContent='Connect →'; }
-}
-
-// ── Step 2: Collections ──
-function _shpRenderColls() {
-  const list = document.getElementById('shp-clist');
-  if (!_shp.collsF.length) { list.innerHTML='<div class="shp-empty">No collections match.</div>'; return; }
-  list.innerHTML = _shp.collsF.map(c=>`
-    <div class="shp-row${_shp.selColl?.id===c.id?' sel':''}" onclick="_shpSelColl('${c.id}')">
-      ${c.img?`<img class="shp-thumb" src="${c.img}" crossorigin="anonymous">`:`<div class="shp-thumb-ph">🗂️</div>`}
-      <div class="shp-row-info"><div class="shp-row-name">${_shpEsc(c.title)}</div><div class="shp-row-sub">/${c.handle}</div></div>
-      <div class="shp-check"></div>
-    </div>`).join('');
-}
-function shpFilterC(q) {
-  q = q.toLowerCase();
-  _shp.collsF = q ? _shp.colls.filter(c=>c.title.toLowerCase().includes(q)||c.handle.includes(q)) : [..._shp.colls];
-  _shpRenderColls();
-}
-function _shpSelColl(id) {
-  _shp.selColl = _shp.colls.find(c=>c.id===id)||null;
-  _shp.selProd = null;
-  _shpRenderColls();
-  document.getElementById('shp-c-next').disabled = !_shp.selColl;
-}
-
-// ── Step 3: Products ──
-async function _shpLoadProducts() {
-  document.getElementById('shp-plist').innerHTML = '<div class="shp-empty">Loading products…</div>';
-  document.getElementById('shp-p-next').disabled = true;
-  _shpStatus(3,'',false);
-  try {
-    const data = await _shpGQL(`{ collection(id:"${_shp.selColl.id}"){ products(first:100){ edges{ node{ id title handle featuredImage{ url } variants(first:1){ edges{ node{ id } } } } } } } }`);
-    const edges = data?.data?.collection?.products?.edges||[];
-    if (!edges.length) { document.getElementById('shp-plist').innerHTML='<div class="shp-empty">No products in this collection.</div>'; return; }
-    _shp.prods = edges.map(e=>({ id:e.node.id, title:e.node.title, handle:e.node.handle, img:e.node.featuredImage?.url||null, variantId:e.node.variants?.edges?.[0]?.node?.id||null }));
-    _shp.prodsF = [..._shp.prods];
-    _shpRenderProds();
-  } catch(err) {
-    document.getElementById('shp-plist').innerHTML=`<div class="shp-empty" style="color:#e05555">❌ ${_shpEsc(err.message||'Failed')}</div>`;
-  }
-}
-function _shpRenderProds() {
-  const list = document.getElementById('shp-plist');
-  if (!_shp.prodsF.length) { list.innerHTML='<div class="shp-empty">No products match.</div>'; return; }
-  list.innerHTML = _shp.prodsF.map(p=>`
-    <div class="shp-row${_shp.selProd?.id===p.id?' sel':''}" onclick="_shpSelProd('${p.id}')">
-      ${p.img?`<img class="shp-thumb" src="${p.img}" crossorigin="anonymous">`:`<div class="shp-thumb-ph">📦</div>`}
-      <div class="shp-row-info"><div class="shp-row-name">${_shpEsc(p.title)}</div><div class="shp-row-sub">/${p.handle}</div></div>
-      <div class="shp-check"></div>
-    </div>`).join('');
-}
-function shpFilterP(q) {
-  q = q.toLowerCase();
-  _shp.prodsF = q ? _shp.prods.filter(p=>p.title.toLowerCase().includes(q)||p.handle.includes(q)) : [..._shp.prods];
-  _shpRenderProds();
-}
-function _shpSelProd(id) {
-  _shp.selProd = _shp.prods.find(p=>p.id===id)||null;
-  _shpRenderProds();
-  document.getElementById('shp-p-next').disabled = !_shp.selProd;
-}
-
-// ── Step 4: Preview + Capture ──
-function _shpBuildPreview() {
-  const urls = _shpBuildUrls();
-  document.getElementById('shp-preview').innerHTML = `
-    <div class="shp-preview-row"><span class="shp-badge">PLP</span><div><div class="shp-preview-val">${_shpEsc(_shp.selColl?.title||'—')}</div><div class="shp-preview-url">${_shpEsc(urls.plp||'No PLP URL — recapture app first')}</div></div></div>
-    <div class="shp-preview-row"><span class="shp-badge">PDP</span><div><div class="shp-preview-val">${_shpEsc(_shp.selProd?.title||'—')}</div><div class="shp-preview-url">${_shpEsc(urls.pdp||'No PDP URL — recapture app first')}</div></div></div>`;
-}
-
-function _shpBuildUrls() {
-  let plp = null, pdp = null;
-  if (!appLinks) return { plp, pdp };
-  if (appLinks.plp && _shp.selColl) {
-    try {
-      const u = new URL(appLinks.plp);
-      const numId = _shp.selColl.id.split('/').pop();
-      if (u.searchParams.has('collectionId'))      u.searchParams.set('collectionId', numId);
-      else if (u.searchParams.has('collection_id')) u.searchParams.set('collection_id', numId);
-      else if (u.searchParams.has('handle'))        u.searchParams.set('handle', _shp.selColl.handle);
-      else                                          u.searchParams.set('collectionId', numId);
-      plp = u.toString();
-    } catch(e) { plp = appLinks.plp; }
-  }
-  if (appLinks.pdp && _shp.selProd) {
-    try {
-      const u = new URL(appLinks.pdp);
-      const numId = _shp.selProd.id.split('/').pop();
-      if (u.searchParams.has('productId'))        u.searchParams.set('productId', numId);
-      else if (u.searchParams.has('product_id'))  u.searchParams.set('product_id', numId);
-      else if (u.searchParams.has('handle'))      u.searchParams.set('handle', _shp.selProd.handle);
-      else                                        u.searchParams.set('productId', numId);
-      pdp = u.toString();
-    } catch(e) { pdp = appLinks.pdp; }
-  }
-  return { plp, pdp };
-}
-
-async function shpCapture() {
-  const urls = _shpBuildUrls();
-  const slots = [];
-  if (urls.plp) slots.push({ url:urls.plp, label:(_shp.selColl?.title||'Collection')+' — PLP', waitFor:5000, scroll:true });
-  if (urls.pdp) slots.push({ url:urls.pdp, label:(_shp.selProd?.title||'Product')+' — PDP',  waitFor:5000, scroll:true });
-  if (!slots.length) { _shpStatus(4,'❌ No URLs — load an App ID first.',true); return; }
-
-  const btn = document.getElementById('shp-cap-btn');
-  btn.disabled = true; btn.textContent = '📸 Capturing…';
-  const errs = [];
-  for (let i=0; i<slots.length; i++) {
-    const slot = slots[i];
-    _shpStatus(4, `Capturing ${i+1}/${slots.length}: ${slot.label}…`, false);
-    try {
-      const res = await fetch(SCREENSHOT_PROXY, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ url:slot.url, waitFor:slot.waitFor, scrollAndBack:slot.scroll }) });
-      const data = await res.json();
-      if (data.ok && data.image) { addToLib(data.image, slot.label); setActiveShot(libCounter); }
-      else errs.push(slot.label);
-    } catch(e) { errs.push(slot.label); }
-  }
-  renderLibGrid();
-  btn.disabled = false; btn.textContent = '📸 Capture Now';
-  if (errs.length) {
-    _shpStatus(4, `⚠️ Failed: ${errs.join(', ')}`, true);
-  } else {
-    _shpStatus(4, `✅ ${slots.length} screenshot${slots.length>1?'s':''} added!`, false);
-    setTimeout(shpClose, 1400);
-  }
-}
-
-// ── Helpers ──
 async function _shpGQL(query) {
-  const res = await fetch(`https://${_shp.domain}/api/2024-04/graphql.json`, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'X-Shopify-Storefront-Access-Token':_shp.token },
-    body: JSON.stringify({ query })
+  if (!_shpCreds) return null;
+  const res = await fetch(_shpCreds.uri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': _shpCreds.token },
+    body: JSON.stringify({ query }),
   });
-  if (!res.ok) throw new Error(`Shopify API error ${res.status} — check domain & token`);
+  if (!res.ok) throw new Error(`Shopify ${res.status}`);
   const json = await res.json();
-  if (json.errors) throw new Error(json.errors[0]?.message||'GraphQL error');
+  if (json.errors) throw new Error(json.errors[0]?.message || 'GraphQL error');
   return json;
 }
-function _shpEsc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function _shpPopulateSelect(selId, items, valueKey, labelKey, currentVal) {
+  const el = document.getElementById(selId);
+  if (!el) return;
+  el.innerHTML = '<option value="">— None selected —</option>' +
+    items.map(i => `<option value="${i[valueKey]}"${i[valueKey]===currentVal?' selected':''}>${i[labelKey]}</option>`).join('');
+  el.style.display = items.length ? 'block' : 'none';
+}
+
+async function _shpLoadCollections(q) {
+  if (!_shpCreds) return;
+  const searchEl = document.getElementById('shp-coll-searching');
+  if (searchEl) searchEl.style.display = 'inline';
+  try {
+    const filter = q ? `, query:"title:*${q}*"` : '';
+    const data = await _shpGQL(`{ collections(first:50, sortKey:UPDATED_AT, reverse:true${filter}) { nodes { handle title } } }`);
+    const cols = (data?.data?.collections?.nodes || []).filter(c => c.handle !== 'all');
+    _shpPopulateSelect('shp-coll-sel', cols, 'handle', 'title', _shpSelCollHandle);
+  } catch(e) { console.warn('[Shopify] collections:', e.message); }
+  finally { if (searchEl) searchEl.style.display = 'none'; }
+}
+
+async function _shpLoadProducts(q) {
+  if (!_shpCreds) return;
+  const searchEl = document.getElementById('shp-prod-searching');
+  if (searchEl) searchEl.style.display = 'inline';
+  try {
+    const filter = q ? `, query:"title:*${q}*"` : '';
+    const data = await _shpGQL(`{ products(first:20, sortKey:UPDATED_AT, reverse:true${filter}) { nodes { id title } } }`);
+    const prods = (data?.data?.products?.nodes || []).map(p => {
+      const m = p.id.match(/\d+$/);
+      return { id: m ? m[0] : null, title: p.title };
+    }).filter(p => p.id);
+    _shpPopulateSelect('shp-prod-sel', prods, 'id', 'title', _shpSelProdId);
+  } catch(e) { console.warn('[Shopify] products:', e.message); }
+  finally { if (searchEl) searchEl.style.display = 'none'; }
+}
+
+function _shpOnCollQ(v) {
+  clearTimeout(_shpCollTimer.t);
+  _shpCollTimer.t = setTimeout(() => _shpLoadCollections(v), 350);
+}
+
+function _shpOnProdQ(v) {
+  clearTimeout(_shpProdTimer.t);
+  _shpProdTimer.t = setTimeout(() => _shpLoadProducts(v), 350);
+}
+
+function _shpSelColl(handle) {
+  _shpSelCollHandle = handle;
+}
+
+function _shpSelProd(id) {
+  _shpSelProdId = id;
+}
+
+async function _shpRecapture() {
+  if (!appLinks) return;
+  const btn = document.getElementById('shp-recapture-btn');
+  if (!_shpSelCollHandle && !_shpSelProdId) {
+    alert('Select a collection or product first.');
+    return;
+  }
+  const plpUrl = appLinks.plp && _shpSelCollHandle ? `${appLinks.plp}?collectionHandle=${_shpSelCollHandle}` : null;
+  const pdpUrl = appLinks.pdp && _shpSelProdId     ? `${appLinks.pdp}?productId=${_shpSelProdId}` : null;
+  const slots = [
+    plpUrl ? { url: plpUrl, label: 'PLP', waitFor: 5000, scroll: true } : null,
+    pdpUrl ? { url: pdpUrl, label: 'PDP', waitFor: 5000, scroll: true } : null,
+  ].filter(Boolean);
+  if (!slots.length) return;
+
+  capturing = true;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Capturing…'; }
+
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    showCapProgress(`Recapturing ${slot.label}… (${i + 1}/${slots.length})`);
+    try {
+      const res = await fetch(SCREENSHOT_PROXY, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: slot.url, waitFor: slot.waitFor, scrollAndBack: slot.scroll }),
+      });
+      const data = await res.json();
+      if (data.ok && data.image) {
+        // Replace existing slot in library if present, otherwise add
+        const existing = library.find(l => l.label === slot.label);
+        if (existing) {
+          existing.dataUrl = data.image;
+          if (activeShotSrc && activeShotSrc === existing.dataUrl) setActiveShot(existing.id);
+        } else {
+          addToLib(data.image, slot.label);
+        }
+        renderLibGrid();
+      }
+    } catch(e) { console.warn('[Recapture]', slot.label, e); }
+  }
+
+  capturing = false;
+  showCapProgress('');
+  renderLibGrid();
+  if (btn) { btn.disabled = false; btn.textContent = '📸 Recapture PLP & PDP'; }
+}
+
 </script>
+
 
 </body>
 </html>
