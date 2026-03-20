@@ -524,6 +524,9 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
     <button id="redo-btn" title="Redo (Cmd+Shift+Z)" onclick="redoAction()" style="display:flex;align-items:center;gap:4px;padding:5px 9px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:10px;font-weight:700;transition:all 0.15s;opacity:0.4" disabled><span style="font-size:12px">↪</span>Redo</button>
     <button class="dl-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="downloadAll()">⬇ All</button>
     <button class="dl-btn" onclick="downloadCurrent()">⬇ Export PNG</button>
+    <div style="width:1px;background:var(--border);height:18px;flex-shrink:0"></div>
+    <button class="dl-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="exportProject()" title="Save project to resume later">💾 Save</button>
+    <label class="dl-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);cursor:pointer" title="Load a previously saved project">📂 Load<input type="file" accept=".mab.json,application/json" style="display:none" onchange="importProject(event)"></label>
   </div>
 </div>
 
@@ -1175,6 +1178,7 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
               <div style="display:flex;gap:10px;margin-bottom:6px;align-items:flex-end"><div><label>Background</label><input type="color" id="ov-push-bgcolor" value="#ffffff" oninput="ovSet('pushBgColor',this.value);renderOverlays()"></div><div style="flex:1"><label>Bg opacity</label><div style="display:flex;align-items:center;gap:4px;margin-top:2px"><input type="range" id="ov-push-bgop" min="0" max="100" value="100" step="5" style="flex:1;accent-color:var(--accent)" oninput="ovSetNum('pushBgOp',+this.value);document.getElementById('ov-push-bgopv').textContent=this.value+'%';renderOverlays()"><span class="sl-val" id="ov-push-bgopv">100%</span></div></div></div>
               <div class="toggle-row" style="margin-bottom:4px"><span class="toggle-label" style="font-size:10px">Show store badges</span><label class="toggle"><input type="checkbox" id="ov-push-badges" checked onchange="ovSet('pushBadges',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
               <div class="toggle-row"><span class="toggle-label" style="font-size:10px">Behind device</span><label class="toggle"><input type="checkbox" id="ov-push-behind" onchange="ovSet('pushBehind',this.checked);renderOverlays()"><span class="tog-sl"></span></label></div>
+              <p style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.5">When off, the notification floats <em>on top</em> of the device.</p>
             </div>
           </div>
 
@@ -2491,6 +2495,16 @@ function switchRRTab(tab, btn) {
 function focusContentTab() { switchRRTab('design', document.getElementById('rrt-design')); }
 function focusScreenTab()  { switchRRTab('layout',  document.getElementById('rrt-layout')); }
 
+// Navigate directly to Design → Overlays → specific sub-panel
+function focusOverlayPanel(ovName) {
+  switchRRTab('design', document.getElementById('rrt-design'));
+  toggleIconPanel('overlays');
+  toggleOvIcon(ovName);
+  // Scroll the rail body to top so the panel is visible
+  const body = document.querySelector('.rr-body');
+  if (body) body.scrollTop = 0;
+}
+
 // ═══════════════════════════════════════════════════
 // LANGUAGE TOPBAR DROPDOWN
 // ═══════════════════════════════════════════════════
@@ -2826,6 +2840,7 @@ function addElement(type, content, svgPath, color) {
   state[currentTab].elements.push(el);
   renderElementsOnCanvas(currentTab);
   renderElemList();
+  focusOverlayPanel('media');
 }
 
 function handleElemImgUpload(e) {
@@ -3200,6 +3215,7 @@ function makeDraggableLogo(id) {
     // Only drag on the area itself, not on a child button click
     if (e.target.tagName === 'BUTTON' && !dragging) return;
     e.preventDefault(); e.stopPropagation();
+    focusContentTab();
     dragging = true;
     const cr = cv.getBoundingClientRect();
     const lr = logoArea.getBoundingClientRect();
@@ -3313,9 +3329,10 @@ function makeDraggablePhone(id) {
 // OVERLAY SYSTEM v2 — draggable, layered, full-featured
 // ═══════════════════════════════════════════════════
 
-const PHONE_Z  = 20;   // z-index of phone-area
-const OV_FRONT = 15;   // overlays in front of phone
-const OV_BEHIND = 8;   // overlays behind phone
+const PHONE_Z   = 20;   // z-index of phone-area
+const OV_FRONT  = 15;   // overlays in front of phone (but below device)
+const OV_BEHIND = 8;    // overlays behind phone
+const OV_OVER   = 25;   // overlays on top of everything (above device)
 
 function defaultOverlayState() {
   return {
@@ -3688,6 +3705,7 @@ function renderOverlays(id) {
       div.innerHTML = `<div class="ov-divider-line" style="margin-left:16px;margin-right:0"></div><div class="ov-divider-dot" style="margin:0 6px"></div><div class="ov-divider-line" style="margin:0"></div><div class="ov-divider-dot" style="margin:0 6px"></div><div class="ov-divider-line" style="margin-right:16px;margin-left:0"></div>`;
     }
     cv.appendChild(div);
+    div.addEventListener('mousedown', () => focusOverlayPanel('divider'), true);
     makeOvDraggable(div, cv, (x, y) => { s.dividerPx = x; s.dividerPy = y; });
   }
 
@@ -3699,6 +3717,7 @@ function renderOverlays(id) {
     el.style.cssText = `position:absolute;left:${tb.x||20}px;top:${tb.y||20}px;font-family:${tb.font || "'Barlow', sans-serif"};font-size:${tb.size||14}px;color:${tb.color||'#ffffff'};font-weight:${tb.weight||'400'};text-align:${tb.align||'left'};max-width:80%;white-space:pre-wrap;line-height:1.3;z-index:${tb.behind ? OV_BEHIND : OV_FRONT};cursor:grab;user-select:none;`;
     el.textContent = tb.content || 'Text';
     cv.appendChild(el);
+    el.addEventListener('mousedown', () => focusOverlayPanel('textbox'), true);
     makeOvDraggable(el, cv, (x, y) => { s.textBoxes[i].x = x; s.textBoxes[i].y = y; });
   });
 
@@ -3733,7 +3752,7 @@ function renderOverlays(id) {
     const pushTop  = s.pushY;
     const pushWidthPct = (s.pushWidth || 85) + '%';
     const pushBgRgba = hexToRgba(s.pushBgColor || '#ffffff', (s.pushBgOp !== undefined ? s.pushBgOp : 100) / 100);
-    push.style.cssText = `left:${pushLeft}px;top:${pushTop}px;transform-origin:top left;transform:scale(${sc});z-index:${s.pushBehind ? OV_BEHIND : OV_FRONT};width:${pushWidthPct};`;
+    push.style.cssText = `left:${pushLeft}px;top:${pushTop}px;transform-origin:top left;transform:scale(${sc});z-index:${s.pushBehind ? OV_BEHIND : OV_OVER};width:${pushWidthPct};`;
     push.style.background = pushBgRgba;
     push.style.borderRadius = '16px';
     push.innerHTML = `
@@ -3748,6 +3767,7 @@ function renderOverlays(id) {
         ${badgesHtml}
       </div>`;
     cv.appendChild(push);
+    push.addEventListener('mousedown', () => focusOverlayPanel('push'), true);
     makeOvDraggable(push, cv, (x, y) => { s.pushX = x; s.pushY = y; });
   }
 
@@ -3801,6 +3821,7 @@ function renderOverlays(id) {
       const inp = document.getElementById('xscr-upload-' + i);
       if (inp) inp.click();
     });
+    el.addEventListener('mousedown', () => focusOverlayPanel('screens'), true);
     makeOvDraggable(el, cv, (x, y) => { xsc.x = x; xsc.y = y; });
   });
 }
@@ -4548,6 +4569,163 @@ async function _shpRecapture() {
   showCapProgress('');
   renderLibGrid();
   if (btn) { btn.disabled = false; btn.textContent = '📸 Recapture PLP & PDP'; }
+}
+
+
+// ═══════════════════════════════════════════════════
+// PROJECT EXPORT / IMPORT
+// Saves all asset state, overlay state, library screenshots,
+// logo, and app metadata to a .mab.json file.
+// ═══════════════════════════════════════════════════
+
+function exportProject() {
+  const btn = document.querySelector('[onclick="exportProject()"]');
+  if (btn) { btn.textContent = '⏳ Saving…'; btn.disabled = true; }
+
+  try {
+    // Capture current text-block positions
+    const tbPositions = {};
+    ASSETS.forEach(id => {
+      const tb = document.getElementById('tb-' + id);
+      const la = document.getElementById('logo-' + id);
+      tbPositions[id] = {
+        tb: tb ? { left: tb.style.left, top: tb.style.top, bottom: tb.style.bottom, right: tb.style.right, transform: tb.style.transform } : null,
+        logo: la ? { left: la.style.left, top: la.style.top } : null,
+      };
+    });
+
+    const project = {
+      version: 2,
+      savedAt: new Date().toISOString(),
+      appId,
+      appName,
+      currentTab,
+      state:   JSON.parse(JSON.stringify(state)),
+      ovState: JSON.parse(JSON.stringify(ovState)),
+      tbPositions,
+      library: library.map(l => ({ id: l.id, label: l.label, dataUrl: l.dataUrl })),
+      libCounter,
+      activeShotSrc,
+      logoSrc,
+    };
+
+    const json   = JSON.stringify(project);
+    const blob   = new Blob([json], { type: 'application/json' });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    const slug   = (appName || 'project').replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 32);
+    a.download   = `${slug}-${new Date().toISOString().slice(0,10)}.mab.json`;
+    a.href       = url;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    console.error('Export failed:', e);
+    alert('❌ Export failed: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '💾 Save'; btn.disabled = false; }
+  }
+}
+
+function importProject(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const project = JSON.parse(ev.target.result);
+      if (!project.state || !project.ovState) throw new Error('Invalid project file.');
+
+      // Restore global vars
+      appId   = project.appId   || '';
+      appName = project.appName || '';
+      library     = project.library     || [];
+      libCounter  = project.libCounter  || 0;
+      activeShotSrc = project.activeShotSrc || null;
+      logoSrc     = project.logoSrc || null;
+
+      // Restore per-asset state (merge over defaults to handle missing keys gracefully)
+      ASSETS.forEach(id => {
+        if (project.state[id])   Object.assign(state[id],   project.state[id]);
+        if (project.ovState[id]) Object.assign(ovState[id], project.ovState[id]);
+      });
+
+      // Switch to saved tab
+      if (project.currentTab && ASSETS.includes(project.currentTab)) {
+        currentTab = project.currentTab;
+        ASSETS.forEach(a => document.getElementById('wrapper-' + a).classList.toggle('active', a === currentTab));
+        document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', ASSETS[i] === currentTab));
+      }
+
+      // Re-render all assets
+      ASSETS.forEach(id => {
+        applyAsset(id);
+        applyPhoneTransform(id);
+        applyFrameColor(id);
+        applyCrop(id);
+        applyPhoneShadow(id);
+        renderOverlays(id);
+        renderElementsOnCanvas(id);
+
+        // Restore logo
+        const logoEl = document.getElementById('logo-' + id);
+        if (logoEl) {
+          if (logoSrc) {
+            const w = state[id].logoW || 105, h = state[id].logoH || 36;
+            logoEl.innerHTML = `<img src="${logoSrc}" alt="logo" crossorigin="anonymous" style="max-width:${w}px;max-height:${h}px;object-fit:contain;display:block">`;
+          } else {
+            logoEl.innerHTML = '';
+          }
+        }
+
+        // Restore active screenshot on phone screens
+        const screenEl = document.getElementById('screen-' + id);
+        if (screenEl) {
+          if (activeShotSrc) {
+            screenEl.innerHTML = `<img src="${activeShotSrc}" alt="screenshot">`;
+            applyCrop(id);
+          } else {
+            screenEl.innerHTML = `<div class="phone-ph"><span>📱</span>Upload screenshot</div>`;
+          }
+        }
+
+        // Restore text-block positions
+        const pos = project.tbPositions?.[id];
+        if (pos) {
+          const tb = document.getElementById('tb-' + id);
+          const la = document.getElementById('logo-' + id);
+          if (tb && pos.tb) Object.assign(tb.style, pos.tb);
+          if (la && pos.logo) Object.assign(la.style, pos.logo);
+        }
+      });
+
+      // Restore app loaded state in Zone 1
+      if (appId) {
+        document.getElementById('capture-idle').style.display   = 'none';
+        document.getElementById('capture-loaded').style.display = 'block';
+        document.getElementById('loaded-icon').textContent      = (appName || appId)[0].toUpperCase();
+        document.getElementById('loaded-name').textContent      = appName || appId;
+        document.getElementById('loaded-id').textContent        = appId;
+      } else {
+        document.getElementById('capture-idle').style.display   = 'block';
+        document.getElementById('capture-loaded').style.display = 'none';
+      }
+
+      // Refresh library grid and right rail
+      renderLibGrid();
+      loadPanelFromState(currentTab);
+      loadPhoneSliders(currentTab);
+      loadFrameSliders(currentTab);
+      loadCropSliders(currentTab);
+      restoreFontLabels(currentTab);
+      updateZone4(library.length > 0);
+
+      alert(`✅ Project loaded: "${appName || appId || 'Untitled'}"\n${library.length} screenshot${library.length !== 1 ? 's' : ''} restored.`);
+    } catch(err) {
+      console.error('Import failed:', err);
+      alert('❌ Could not load project: ' + err.message);
+    }
+    e.target.value = ''; // reset so same file can be re-loaded
+  };
+  reader.readAsText(file);
 }
 
 </script>
