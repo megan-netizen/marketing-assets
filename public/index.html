@@ -527,6 +527,8 @@ input[type="color"] { width: 100%; background: var(--surface2); border: 1px soli
     <div style="width:1px;background:var(--border);height:18px;flex-shrink:0"></div>
     <button class="dl-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="exportProject()" title="Save project to resume later">💾 Save</button>
     <label class="dl-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);cursor:pointer" title="Load a previously saved project">📂 Load<input type="file" accept=".mab.json,application/json" style="display:none" onchange="importProject(event)"></label>
+    <div style="width:1px;background:var(--border);height:18px;flex-shrink:0"></div>
+    <a href="help.html" target="_blank" title="How to use this tool" style="display:flex;align-items:center;gap:5px;padding:5px 11px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.5px;text-decoration:none;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help</a>
   </div>
 </div>
 
